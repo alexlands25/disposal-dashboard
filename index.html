@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Epic Landscaping — Disposal Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',-apple-system,sans-serif;background:#F8F9FA;min-height:100vh}
+.header{background:linear-gradient(135deg,#1B2A4A 0%,#2E3B4E 100%);padding:16px 28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.header-left{display:flex;align-items:center;gap:14px}
+.logo{width:40px;height:40px;border-radius:10px;background:#2D6A2D;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff}
+.header-title{color:#fff;font-size:18px;font-weight:800;letter-spacing:-0.5px}
+.header-sub{color:#9BA3AE;font-size:11px;font-weight:500}
+.header-right{display:flex;align-items:center;gap:10px}
+.status-badge{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px}
+.status-dot{width:7px;height:7px;border-radius:50%}
+.btn{padding:5px 12px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;border:none;transition:all .2s;font-family:'DM Sans',sans-serif}
+.btn-outline{border:1px solid #9BA3AE;background:transparent;color:#fff}
+.btn-green{background:#2D6A2D;color:#fff;border:1px solid #2D6A2D}
+.setup-panel{background:#fff;border-bottom:1px solid #DDE0E4;padding:14px 28px;display:none;align-items:center;gap:12px;flex-wrap:wrap}
+.setup-panel.visible{display:flex}
+.setup-panel input{flex:1;min-width:280px;padding:7px 12px;border-radius:8px;border:1px solid #DDE0E4;font-size:12px;font-family:monospace}
+.container{padding:20px 28px;max-width:1400px;margin:0 auto}
+.time-bar{display:flex;align-items:center;gap:8px;margin-bottom:20px;background:#fff;padding:10px 16px;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.08);flex-wrap:wrap}
+.pill-label{font-size:11px;font-weight:700;color:#9BA3AE;text-transform:uppercase;letter-spacing:1px;margin-right:4px}
+.time-pill{padding:8px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px;border:1px solid #DDE0E4;background:#fff;color:#5A6270;font-family:'DM Sans',sans-serif}
+.time-pill.active{border:none;background:#1B2A4A;color:#fff}
+.filters{display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.filter-pill{padding:6px 16px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;border:1px solid #DDE0E4;background:#fff;color:#5A6270;font-family:'DM Sans',sans-serif}
+.filter-pill.active{border:2px solid #2D6A2D;background:#2D6A2D;color:#fff}
+.filter-divider{width:1px;height:22px;background:#DDE0E4;margin:0 6px}
+.period-label{font-size:14px;font-weight:700;color:#1B2A4A;margin-bottom:16px}
+.scorecards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:24px}
+.scorecard{background:#fff;border-radius:12px;padding:18px 22px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.scorecard-header{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.scorecard-icon{font-size:16px}
+.scorecard-label{font-size:11px;font-weight:600;color:#9BA3AE;text-transform:uppercase;letter-spacing:1px}
+.scorecard-value{font-size:28px;font-weight:800;color:#1B2A4A;line-height:1}
+.scorecard-sub{font-size:11px;color:#9BA3AE;margin-top:4px}
+.grid-2col{display:grid;grid-template-columns:2fr 1fr;gap:18px;margin-bottom:24px}
+.grid-equal{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px}
+.card{background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.card-title{font-size:13px;font-weight:700;color:#1B2A4A;margin-bottom:14px}
+.chart-empty{height:200px;display:flex;align-items:center;justify-content:center;color:#9BA3AE;font-size:13px}
+.truck-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.truck-label{width:75px;font-size:12px;font-weight:600;color:#5A6270;text-align:right;flex-shrink:0}
+.truck-bar-bg{flex:1;height:20px;background:#F0F1F3;border-radius:10px;overflow:hidden}
+.truck-bar-fill{height:100%;background:#2D6A2D;border-radius:10px;transition:width .6s ease;min-width:2px}
+.truck-value{font-size:11px;font-weight:700;color:#1B2A4A;width:60px;text-align:right}
+.emp-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.emp-rank{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0}
+.emp-info{flex:1}
+.emp-name{font-size:12px;font-weight:700;color:#2C3038}
+.emp-trips{font-size:10px;color:#9BA3AE}
+.emp-yards{font-size:15px;font-weight:800;color:#1B2A4A}
+.emp-unit{font-size:9px;font-weight:500;color:#9BA3AE}
+.dept-legend{display:flex;justify-content:center;gap:14px;margin-top:8px}
+.dept-item{display:flex;align-items:center;gap:5px;font-size:11px;color:#5A6270}
+.dept-dot{width:9px;height:9px;border-radius:3px;display:inline-block}
+.weekly-grid{display:grid;gap:12px;margin-bottom:24px}
+.week-card{background:#F8F9FA;border-radius:8px;padding:14px 16px;text-align:center;border:1px solid #F0F1F3}
+.week-label{font-size:11px;font-weight:700;color:#9BA3AE;margin-bottom:6px}
+.week-value{font-size:22px;font-weight:800;color:#1B2A4A}
+.week-sub{font-size:10px;color:#9BA3AE}
+.table-wrap{background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow:hidden}
+.table-head{padding:14px 20px;border-bottom:1px solid #F0F1F3;display:flex;justify-content:space-between;align-items:center}
+.table-title{font-size:13px;font-weight:700;color:#1B2A4A}
+.table-count{font-size:11px;color:#9BA3AE}
+.table-scroll{overflow-x:auto;max-height:500px;overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead{position:sticky;top:0;z-index:1}
+th{padding:9px 14px;text-align:left;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.8px;cursor:pointer;user-select:none;white-space:nowrap;background:#F8F9FA;color:#9BA3AE;border-bottom:2px solid #F0F1F3}
+th.sorted{color:#2D6A2D;border-bottom-color:#2D6A2D}
+td{padding:9px 14px;border-bottom:1px solid #F0F1F3}
+tr:hover td{background:#F8F9FA}
+.badge{padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.badge-paid{background:#E8F5E9;color:#2D6A2D}
+.badge-unpaid{background:#FFF3E0;color:#D4A037}
+.footer{text-align:center;padding:20px 0 12px;color:#9BA3AE;font-size:10px}
+.error-text{color:#C0392B;font-size:11px;font-weight:600}
+.refresh-text{font-size:10px;color:#9BA3AE}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@media(max-width:768px){
+  .grid-2col,.grid-equal{grid-template-columns:1fr}
+  .scorecards{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+  .container{padding:16px}
+  .header{padding:12px 16px}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <div class="logo">EL</div>
+    <div>
+      <div class="header-title">Epic Landscaping</div>
+      <div class="header-sub">Disposal Tracking Dashboard</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="status-badge" id="statusBadge" style="background:rgba(212,160,55,0.3);border:1px solid #D4A037">
+      <div class="status-dot" id="statusDot" style="background:#D4A037"></div>
+      <span style="color:#fff;font-size:11px;font-weight:600" id="statusText">DEMO</span>
+    </div>
+    <button class="btn btn-outline" onclick="toggleSetup()">⚙ Connect</button>
+    <button class="btn btn-green" id="refreshBtn" style="display:none" onclick="refreshData()">↻ Refresh</button>
+  </div>
+</div>
+
+<!-- SETUP PANEL -->
+<div class="setup-panel" id="setupPanel">
+  <span style="font-size:12px;font-weight:600;color:#5A6270">Apps Script URL:</span>
+  <input type="text" id="apiUrlInput" placeholder="Paste your deployed web app URL here" value="https://script.google.com/macros/s/AKfycbzoRXIX_vzqNUBSAlLX6GDT4ie5cFDGNIn52swzI1TtLLr5c5zxrDww9DPQvTYiX52eAA/exec">
+  <button class="btn btn-green" onclick="connectApi()">Connect</button>
+  <span class="error-text" id="errorText" style="display:none"></span>
+  <span class="refresh-text" id="lastRefreshText"></span>
+</div>
+
+<div class="container">
+
+  <!-- TIME SELECTOR -->
+  <div class="time-bar">
+    <span class="pill-label">View:</span>
+    <button class="time-pill active" data-view="daily" onclick="setTimeView('daily',this)">📅 Today</button>
+    <button class="time-pill" data-view="weekly" onclick="setTimeView('weekly',this)">📆 This Week</button>
+    <button class="time-pill" data-view="monthly" onclick="setTimeView('monthly',this)">🗓 This Month</button>
+    <button class="time-pill" data-view="yearly" onclick="setTimeView('yearly',this)">📊 This Year</button>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="filters">
+    <span class="pill-label">Dept:</span>
+    <button class="filter-pill active" data-dept="All" onclick="setDeptFilter('All',this)">All</button>
+    <div id="deptFilters"></div>
+    <div class="filter-divider"></div>
+    <span class="pill-label">Status:</span>
+    <button class="filter-pill active" data-status="All" onclick="setStatusFilter('All',this)">All</button>
+    <button class="filter-pill" data-status="Not Paid" onclick="setStatusFilter('Not Paid',this)">Not Paid</button>
+    <button class="filter-pill" data-status="Paid" onclick="setStatusFilter('Paid',this)">Paid</button>
+  </div>
+
+  <!-- PERIOD LABEL -->
+  <div class="period-label" id="periodLabel"></div>
+
+  <!-- SCORECARDS -->
+  <div class="scorecards" id="scorecards"></div>
+
+  <!-- CHARTS ROW 1 -->
+  <div class="grid-2col">
+    <div class="card">
+      <div class="card-title" id="trendTitle">Daily Trend</div>
+      <canvas id="trendChart" height="240"></canvas>
+      <div class="chart-empty" id="trendEmpty" style="display:none">No data for this period</div>
+    </div>
+    <div class="card">
+      <div class="card-title">By Department</div>
+      <canvas id="deptChart" height="200"></canvas>
+      <div id="deptLegend" class="dept-legend"></div>
+      <div class="chart-empty" id="deptEmpty" style="display:none">No data</div>
+    </div>
+  </div>
+
+  <!-- CHARTS ROW 2 -->
+  <div class="grid-equal">
+    <div class="card">
+      <div class="card-title" id="truckTitle">Yards per Truck</div>
+      <div id="truckBars"></div>
+      <div class="chart-empty" id="truckEmpty" style="display:none">No data</div>
+    </div>
+    <div class="card">
+      <div class="card-title" id="empTitle">Employee Leaderboard</div>
+      <div id="empList"></div>
+      <div class="chart-empty" id="empEmpty" style="display:none">No data</div>
+    </div>
+  </div>
+
+  <!-- WEEKLY SUMMARY (monthly view only) -->
+  <div class="card" id="weeklySummaryCard" style="display:none;margin-bottom:24px">
+    <div class="card-title">Weekly Summary — This Month</div>
+    <div class="weekly-grid" id="weeklyGrid"></div>
+  </div>
+
+  <!-- DATA TABLE -->
+  <div class="table-wrap">
+    <div class="table-head">
+      <div class="table-title">All Receipts</div>
+      <div class="table-count" id="tableCount"></div>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr id="tableHeaders"></tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="footer">Epic Landscaping © 2026 — Powered by Wallee 🤖</div>
+</div>
+
+<script>
+// ============ STATE ============
+let allData = [];
+let isLive = false;
+let apiUrl = '';
+let timeView = 'daily';
+let deptFilter = 'All';
+let statusFilter = 'All';
+let sortCol = 'Date';
+let sortDir = 'desc';
+let trendChartInstance = null;
+let deptChartInstance = null;
+let refreshInterval = null;
+
+// ============ DATE HELPERS ============
+function parseDate(d) {
+  if (!d) return null;
+  if (d instanceof Date && !isNaN(d)) return d;
+  const s = String(d);
+  const parts = s.split('/');
+  if (parts.length === 3) return new Date(parseInt(parts[2]), parseInt(parts[0]) - 1, parseInt(parts[1]));
+  const iso = new Date(s);
+  return isNaN(iso) ? null : iso;
+}
+
+function isToday(d) {
+  const date = parseDate(d); if (!date) return false;
+  const n = new Date();
+  return date.getFullYear() === n.getFullYear() && date.getMonth() === n.getMonth() && date.getDate() === n.getDate();
+}
+
+function isThisWeek(d) {
+  const date = parseDate(d); if (!date) return false;
+  const n = new Date();
+  const start = new Date(n); start.setDate(n.getDate() - n.getDay()); start.setHours(0,0,0,0);
+  const end = new Date(start); end.setDate(start.getDate() + 7);
+  return date >= start && date < end;
+}
+
+function isThisMonth(d) {
+  const date = parseDate(d); if (!date) return false;
+  const n = new Date();
+  return date.getFullYear() === n.getFullYear() && date.getMonth() === n.getMonth();
+}
+
+function isThisYear(d) {
+  const date = parseDate(d); if (!date) return false;
+  return date.getFullYear() === new Date().getFullYear();
+}
+
+function getDayLabel(d) {
+  const date = parseDate(d); if (!date) return String(d);
+  return (date.getMonth()+1) + '/' + date.getDate();
+}
+
+function getMonthLabel(d) {
+  const date = parseDate(d); if (!date) return 'Unknown';
+  const m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return m[date.getMonth()] + ' ' + date.getFullYear();
+}
+
+function getWeekNum(d) {
+  const date = new Date(d); date.setHours(0,0,0,0);
+  date.setDate(date.getDate() + 3 - ((date.getDay() + 6) % 7));
+  const w1 = new Date(date.getFullYear(), 0, 4);
+  return Math.round(((date - w1) / 86400000 - 3 + ((w1.getDay() + 6) % 7)) / 7) + 1;
+}
+
+function getWeekLabel(d) {
+  const date = parseDate(d); if (!date) return 'Unknown';
+  return 'W' + getWeekNum(date) + ' ' + date.getFullYear();
+}
+
+// ============ FILTER / GROUP ============
+function getFiltered() {
+  return allData.filter(r => {
+    if (deptFilter !== 'All' && (r.Department || r._source) !== deptFilter) return false;
+    if (statusFilter !== 'All' && r.Status !== statusFilter) return false;
+    return true;
+  });
+}
+
+function getTimeFiltered(data) {
+  return data.filter(r => {
+    if (timeView === 'daily') return isToday(r.Date);
+    if (timeView === 'weekly') return isThisWeek(r.Date);
+    if (timeView === 'monthly') return isThisMonth(r.Date);
+    if (timeView === 'yearly') return isThisYear(r.Date);
+    return true;
+  });
+}
+
+// ============ UI CONTROLS ============
+function toggleSetup() {
+  document.getElementById('setupPanel').classList.toggle('visible');
+}
+
+function setTimeView(v, el) {
+  timeView = v;
+  document.querySelectorAll('.time-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  render();
+}
+
+function setDeptFilter(v, el) {
+  deptFilter = v;
+  document.querySelectorAll('[data-dept]').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  render();
+}
+
+function setStatusFilter(v, el) {
+  statusFilter = v;
+  document.querySelectorAll('[data-status]').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  render();
+}
+
+function setSortCol(col) {
+  if (sortCol === col) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+  else { sortCol = col; sortDir = 'desc'; }
+  render();
+}
+
+// ============ API ============
+async function connectApi() {
+  apiUrl = document.getElementById('apiUrlInput').value.trim();
+  if (!apiUrl) return;
+  document.getElementById('errorText').style.display = 'none';
+  try {
+    const res = await fetch(apiUrl);
+    const json = await res.json();
+    if (json.success && json.data) {
+      allData = json.data.map(r => ({ ...r, Yards: parseFloat(r.Yards) || 0, Amount: parseFloat(r.Amount) || 0 }));
+      isLive = true;
+      updateStatus();
+      render();
+      document.getElementById('lastRefreshText').textContent = 'Connected: ' + new Date().toLocaleTimeString();
+      if (refreshInterval) clearInterval(refreshInterval);
+      refreshInterval = setInterval(refreshData, 300000);
+    } else {
+      showError('No data returned.');
+    }
+  } catch (e) {
+    showError('Connection failed. Check URL.');
+  }
+}
+
+async function refreshData() {
+  if (!apiUrl) return;
+  try {
+    const res = await fetch(apiUrl);
+    const json = await res.json();
+    if (json.success && json.data) {
+      allData = json.data.map(r => ({ ...r, Yards: parseFloat(r.Yards) || 0, Amount: parseFloat(r.Amount) || 0 }));
+      document.getElementById('lastRefreshText').textContent = 'Last: ' + new Date().toLocaleTimeString();
+      render();
+    }
+  } catch (e) {}
+}
+
+function showError(msg) {
+  const el = document.getElementById('errorText');
+  el.textContent = msg; el.style.display = 'inline';
+}
+
+function updateStatus() {
+  const badge = document.getElementById('statusBadge');
+  const dot = document.getElementById('statusDot');
+  const text = document.getElementById('statusText');
+  const btn = document.getElementById('refreshBtn');
+  if (isLive) {
+    badge.style.background = 'rgba(45,106,45,0.3)'; badge.style.border = '1px solid #2D6A2D';
+    dot.style.background = '#6BBF6B'; dot.style.boxShadow = '0 0 8px #6BBF6B'; dot.style.animation = 'pulse 2s infinite';
+    text.textContent = 'LIVE'; btn.style.display = 'inline-block';
+  } else {
+    badge.style.background = 'rgba(212,160,55,0.3)'; badge.style.border = '1px solid #D4A037';
+    dot.style.background = '#D4A037'; dot.style.boxShadow = 'none'; dot.style.animation = 'none';
+    text.textContent = 'DEMO'; btn.style.display = 'none';
+  }
+}
+
+// ============ RENDER ============
+function render() {
+  const filtered = getFiltered();
+  const tf = getTimeFiltered(filtered);
+  const timeLabels = { daily: 'Today', weekly: 'This Week', monthly: 'This Month', yearly: 'This Year' };
+  const tl = timeLabels[timeView];
+
+  // Department filters
+  const depts = [...new Set(allData.map(r => r.Department || r._source).filter(Boolean))];
+  const deptDiv = document.getElementById('deptFilters');
+  deptDiv.innerHTML = depts.map(d =>
+    `<button class="filter-pill ${deptFilter === d ? 'active' : ''}" data-dept="${d}" onclick="setDeptFilter('${d}',this)">${d}</button>`
+  ).join('');
+
+  // Period label
+  const totalY = tf.reduce((s, r) => s + (r.Yards || 0), 0);
+  const totalT = tf.length;
+  document.getElementById('periodLabel').textContent = `📊 ${tl} — ${totalT} ticket${totalT !== 1 ? 's' : ''}, ${totalY.toLocaleString()} yards`;
+
+  // Scorecards
+  const unpaidT = tf.filter(r => r.Status === 'Not Paid').length;
+  const unpaidY = tf.filter(r => r.Status === 'Not Paid').reduce((s, r) => s + (r.Yards || 0), 0);
+  const avgY = totalT > 0 ? (totalY / totalT).toFixed(1) : 0;
+  const trucks = new Set(tf.map(r => r['Truck #'])).size;
+
+  document.getElementById('scorecards').innerHTML = `
+    <div class="scorecard" style="border-left-color:#2D6A2D">
+      <div class="scorecard-header"><span class="scorecard-icon">📦</span><span class="scorecard-label">Total Yards</span></div>
+      <div class="scorecard-value">${totalY.toLocaleString()}</div>
+      <div class="scorecard-sub">${totalT} tickets</div>
+    </div>
+    <div class="scorecard" style="border-left-color:#1B2A4A">
+      <div class="scorecard-header"><span class="scorecard-icon">🧾</span><span class="scorecard-label">Tickets</span></div>
+      <div class="scorecard-value">${totalT}</div>
+    </div>
+    <div class="scorecard" style="border-left-color:#D4A037">
+      <div class="scorecard-header"><span class="scorecard-icon">⚠️</span><span class="scorecard-label">Unpaid Yards</span></div>
+      <div class="scorecard-value">${unpaidY.toLocaleString()}</div>
+      <div class="scorecard-sub">${unpaidT} unpaid</div>
+    </div>
+    <div class="scorecard" style="border-left-color:#2E3B4E">
+      <div class="scorecard-header"><span class="scorecard-icon">📐</span><span class="scorecard-label">Avg Yards/Trip</span></div>
+      <div class="scorecard-value">${avgY}</div>
+    </div>
+    <div class="scorecard" style="border-left-color:#4A9B4A">
+      <div class="scorecard-header"><span class="scorecard-icon">🚛</span><span class="scorecard-label">Active Trucks</span></div>
+      <div class="scorecard-value">${trucks}</div>
+    </div>
+  `;
+
+  renderTrendChart(tf, filtered);
+  renderDeptChart(tf);
+  renderTruckBars(tf, tl);
+  renderEmployees(tf, tl);
+  renderWeeklySummary(filtered);
+  renderTable(filtered);
+}
+
+// ============ TREND CHART ============
+function renderTrendChart(tf, allFiltered) {
+  const canvas = document.getElementById('trendChart');
+  const empty = document.getElementById('trendEmpty');
+  const title = document.getElementById('trendTitle');
+
+  if (trendChartInstance) { trendChartInstance.destroy(); trendChartInstance = null; }
+
+  let labels = [], yardsData = [], unpaidData = [], maintData = [], treeData = [];
+  let chartType = 'line';
+
+  if (timeView === 'yearly') {
+    title.textContent = 'Monthly Trend';
+    chartType = 'bar';
+    const map = {};
+    allFiltered.filter(r => isThisYear(r.Date)).forEach(r => {
+      const m = getMonthLabel(r.Date);
+      if (!map[m]) map[m] = { m, maint: 0, tree: 0, _d: parseDate(r.Date) };
+      if ((r.Department || r._source) === 'Mantenimiento') map[m].maint += r.Yards || 0;
+      else map[m].tree += r.Yards || 0;
+    });
+    const sorted = Object.values(map).sort((a, b) => (a._d || 0) - (b._d || 0));
+    labels = sorted.map(s => s.m);
+    maintData = sorted.map(s => s.maint);
+    treeData = sorted.map(s => s.tree);
+  } else {
+    title.textContent = timeView === 'daily' ? "Today's Dumps" : timeView === 'weekly' ? 'Daily Trend' : 'Daily Trend';
+    const map = {};
+    tf.forEach(r => {
+      const k = getDayLabel(r.Date);
+      if (!map[k]) map[k] = { k, yards: 0, unpaid: 0, _d: parseDate(r.Date) };
+      map[k].yards += r.Yards || 0;
+      if (r.Status === 'Not Paid') map[k].unpaid += r.Yards || 0;
+    });
+    const sorted = Object.values(map).sort((a, b) => (a._d || 0) - (b._d || 0));
+    labels = sorted.map(s => s.k);
+    yardsData = sorted.map(s => s.yards);
+    unpaidData = sorted.map(s => s.unpaid);
+  }
+
+  if (labels.length === 0) {
+    canvas.style.display = 'none'; empty.style.display = 'flex'; return;
+  }
+  canvas.style.display = 'block'; empty.style.display = 'none';
+
+  const ctx = canvas.getContext('2d');
+  if (chartType === 'bar') {
+    trendChartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Maintenance', data: maintData, backgroundColor: '#2D6A2D', borderRadius: 4 },
+          { label: 'Tree Trimming', data: treeData, backgroundColor: '#1B2A4A', borderRadius: 4 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { labels: { font: { size: 11, family: 'DM Sans' } } } },
+        scales: {
+          x: { stacked: true, ticks: { font: { size: 10 } }, grid: { display: false } },
+          y: { stacked: true, ticks: { font: { size: 10 } }, grid: { color: '#F0F1F3' } }
+        }
+      }
+    });
+  } else {
+    trendChartInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Yards', data: yardsData, borderColor: '#2D6A2D', backgroundColor: 'rgba(45,106,45,0.1)', fill: true, tension: 0.3, pointRadius: 4, borderWidth: 2 },
+          { label: 'Unpaid', data: unpaidData, borderColor: '#D4A037', backgroundColor: 'rgba(212,160,55,0.08)', fill: true, tension: 0.3, pointRadius: 3, borderWidth: 2 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { labels: { font: { size: 11, family: 'DM Sans' } } } },
+        scales: {
+          x: { ticks: { font: { size: 10 } }, grid: { display: false } },
+          y: { ticks: { font: { size: 10 } }, grid: { color: '#F0F1F3' } }
+        }
+      }
+    });
+  }
+}
+
+// ============ DEPT CHART ============
+function renderDeptChart(tf) {
+  const canvas = document.getElementById('deptChart');
+  const empty = document.getElementById('deptEmpty');
+  const legend = document.getElementById('deptLegend');
+
+  if (deptChartInstance) { deptChartInstance.destroy(); deptChartInstance = null; }
+
+  const map = {};
+  tf.forEach(r => {
+    const d = r.Department || r._source || 'Unknown';
+    map[d] = (map[d] || 0) + (r.Yards || 0);
+  });
+  const entries = Object.entries(map);
+  const colors = ['#2D6A2D', '#1B2A4A', '#D4A037', '#C0392B'];
+
+  if (entries.length === 0) {
+    canvas.style.display = 'none'; empty.style.display = 'flex'; legend.innerHTML = ''; return;
+  }
+  canvas.style.display = 'block'; empty.style.display = 'none';
+
+  legend.innerHTML = entries.map(([name, val], i) =>
+    `<div class="dept-item"><span class="dept-dot" style="background:${colors[i % colors.length]}"></span><strong>${name}</strong> ${val}y</div>`
+  ).join('');
+
+  const ctx = canvas.getContext('2d');
+  deptChartInstance = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: entries.map(e => e[0]),
+      datasets: [{ data: entries.map(e => e[1]), backgroundColor: colors.slice(0, entries.length), borderWidth: 2, borderColor: '#fff' }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '60%',
+      plugins: { legend: { display: false } }
+    }
+  });
+}
+
+// ============ TRUCK BARS ============
+function renderTruckBars(tf, tl) {
+  const container = document.getElementById('truckBars');
+  const empty = document.getElementById('truckEmpty');
+  document.getElementById('truckTitle').textContent = 'Yards per Truck — ' + tl;
+
+  const map = {};
+  tf.forEach(r => {
+    const t = r['Truck #'] || 'Unknown';
+    if (!map[t]) map[t] = { yards: 0, trips: 0 };
+    map[t].yards += r.Yards || 0;
+    map[t].trips += 1;
+  });
+  const arr = Object.entries(map).map(([n, d]) => ({ name: n, ...d })).sort((a, b) => b.yards - a.yards);
+  const maxY = arr.length > 0 ? arr[0].yards : 1;
+
+  if (arr.length === 0) { container.innerHTML = ''; empty.style.display = 'flex'; return; }
+  empty.style.display = 'none';
+
+  container.innerHTML = arr.map(t => `
+    <div class="truck-row">
+      <div class="truck-label">Truck ${t.name}</div>
+      <div class="truck-bar-bg"><div class="truck-bar-fill" style="width:${(t.yards / maxY * 100)}%"></div></div>
+      <div class="truck-value">${t.yards}y · ${t.trips}t</div>
+    </div>
+  `).join('');
+}
+
+// ============ EMPLOYEES ============
+function renderEmployees(tf, tl) {
+  const container = document.getElementById('empList');
+  const empty = document.getElementById('empEmpty');
+  document.getElementById('empTitle').textContent = 'Employee Leaderboard — ' + tl;
+
+  const map = {};
+  tf.forEach(r => {
+    const e = r.Employee || 'Unknown';
+    if (!map[e]) map[e] = { name: e, yards: 0, trips: 0 };
+    map[e].yards += r.Yards || 0;
+    map[e].trips += 1;
+  });
+  const arr = Object.values(map).sort((a, b) => b.yards - a.yards).slice(0, 8);
+
+  if (arr.length === 0) { container.innerHTML = ''; empty.style.display = 'flex'; return; }
+  empty.style.display = 'none';
+
+  container.innerHTML = arr.map((e, i) => `
+    <div class="emp-row">
+      <div class="emp-rank ${i === 0 ? 'emp-rank-1' : i === 1 ? 'emp-rank-2' : 'emp-rank-other'}">${i + 1}</div>
+      <div class="emp-info">
+        <div class="emp-name">${e.name}</div>
+        <div class="emp-trips">${e.trips} trip${e.trips !== 1 ? 's' : ''}</div>
+      </div>
+      <div><span class="emp-yards">${e.yards}</span> <span class="emp-unit">yds</span></div>
+    </div>
+  `).join('');
+}
+
+// ============ WEEKLY SUMMARY ============
+function renderWeeklySummary(filtered) {
+  const card = document.getElementById('weeklySummaryCard');
+  const grid = document.getElementById('weeklyGrid');
+
+  if (timeView !== 'monthly') { card.style.display = 'none'; return; }
+
+  const map = {};
+  filtered.filter(r => isThisMonth(r.Date)).forEach(r => {
+    const wk = getWeekLabel(r.Date);
+    if (!map[wk]) map[wk] = { week: wk, yards: 0, tickets: 0, _d: parseDate(r.Date) };
+    map[wk].yards += r.Yards || 0;
+    map[wk].tickets += 1;
+  });
+  const arr = Object.values(map).sort((a, b) => (a._d || 0) - (b._d || 0));
+
+  if (arr.length === 0) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  grid.style.gridTemplateColumns = `repeat(${arr.length}, 1fr)`;
+  grid.innerHTML = arr.map(w => `
+    <div class="week-card">
+      <div class="week-label">${w.week}</div>
+      <div class="week-value">${w.yards}</div>
+      <div class="week-sub">yards · ${w.tickets} tickets</div>
+    </div>
+  `).join('');
+}
+
+// ============ DATA TABLE ============
+function renderTable(filtered) {
+  const cols = ['Date', 'Receipt #', 'Department', 'Truck #', 'Yards', 'Employee', 'Description', 'Status'];
+  const headers = document.getElementById('tableHeaders');
+  const body = document.getElementById('tableBody');
+  const count = document.getElementById('tableCount');
+
+  const sorted = [...filtered].sort((a, b) => {
+    let av = a[sortCol] || '', bv = b[sortCol] || '';
+    if (sortCol === 'Yards' || sortCol === 'Amount') { av = parseFloat(av) || 0; bv = parseFloat(bv) || 0; }
+    if (sortCol === 'Date') { av = parseDate(av) || new Date(0); bv = parseDate(bv) || new Date(0); }
+    return sortDir === 'asc' ? (av > bv ? 1 : -1) : (av < bv ? 1 : -1);
+  });
+
+  count.textContent = sorted.length + ' records (all time)';
+
+  headers.innerHTML = cols.map(c =>
+    `<th class="${sortCol === c ? 'sorted' : ''}" onclick="setSortCol('${c}')">${c} ${sortCol === c ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>`
+  ).join('');
+
+  body.innerHTML = sorted.slice(0, 200).map(r => {
+    const dept = r.Department || r._source || '';
+    const status = r.Status || '';
+    const badgeClass = status === 'Paid' ? 'badge-paid' : 'badge-unpaid';
+    return `<tr>
+      <td class="td-date">${r.Date || ''}</td>
+      <td style="color:#1B2A4A;font-weight:700;font-family:monospace;font-size:11px">${r['Receipt #'] || ''}</td>
+      <td>${dept}</td>
+      <td style="color:#2C3038;font-weight:700">${r['Truck #'] || ''}</td>
+      <td style="color:#1B2A4A;font-weight:800">${r.Yards || ''}</td>
+      <td style="color:#5A6270">${r.Employee || ''}</td>
+      <td style="color:#9BA3AE;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.Description || ''}</td>
+      <td><span class="badge ${badgeClass}">${status}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ============ INIT ============
+// Auto-connect on load
+window.addEventListener('load', function() {
+  const urlInput = document.getElementById('apiUrlInput');
+  if (urlInput.value) {
+    connectApi();
+  } else {
+    render();
+  }
+});
+</script>
+</body>
+</html>
