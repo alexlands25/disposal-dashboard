@@ -308,10 +308,13 @@ let customTo = null;
 function parseDate(d) {
   if (!d) return null;
   if (d instanceof Date && !isNaN(d)) return d;
-  const s = String(d);
-  const parts = s.split('/');
+  var s = String(d).trim();
+  // Strip time portion if present (e.g. "03/03/2026 09:55:00 AM")
+  s = s.replace(/\s+\d{1,2}:\d{2}(:\d{2})?\s*(AM|PM|am|pm)?\s*$/i, '');
+  s = s.replace(/T\d{2}:\d{2}.*$/, '');
+  var parts = s.split('/');
   if (parts.length === 3) return new Date(parseInt(parts[2]), parseInt(parts[0]) - 1, parseInt(parts[1]));
-  const iso = new Date(s);
+  var iso = new Date(s);
   return isNaN(iso) ? null : iso;
 }
 
@@ -395,7 +398,7 @@ function getWeekLabel(d) {
 // ============ FILTER / GROUP ============
 function getFiltered() {
   return allData.filter(r => {
-    if (deptFilter !== 'All' && (r.Department || r._source) !== deptFilter) return false;
+    if (deptFilter !== 'All' && (r._source || r.Department) !== deptFilter) return false;
     if (statusFilter !== 'All' && r.Status !== statusFilter) return false;
     return true;
   });
@@ -520,7 +523,15 @@ function loadViaJsonp(url, statusEl) {
 
 function handleData(json, statusEl) {
   if (json.success && json.data && json.data.length > 0) {
-    allData = json.data.map(function(r) { return Object.assign({}, r, { Yards: parseFloat(r.Yards) || 0, Amount: parseFloat(r.Amount) || 0 }); });
+    allData = json.data.map(function(r) {
+      // Clean field names - strip tabs and extra whitespace
+      var clean = {};
+      Object.keys(r).forEach(function(k) {
+        var cleanKey = k.replace(/\t/g, '').trim();
+        clean[cleanKey] = r[k];
+      });
+      return Object.assign({}, clean, { Yards: parseFloat(clean.Yards) || 0, Amount: parseFloat(clean.Amount) || 0 });
+    });
     isLive = true;
     updateStatus();
     statusEl.style.background = '#E8F5E9'; statusEl.style.color = '#2D6A2D';
@@ -544,7 +555,11 @@ async function refreshData() {
     var text = await res.text();
     var json = JSON.parse(text);
     if (json.success && json.data) {
-      allData = json.data.map(function(r) { return Object.assign({}, r, { Yards: parseFloat(r.Yards) || 0, Amount: parseFloat(r.Amount) || 0 }); });
+      allData = json.data.map(function(r) {
+        var clean = {};
+        Object.keys(r).forEach(function(k) { clean[k.replace(/\t/g, '').trim()] = r[k]; });
+        return Object.assign({}, clean, { Yards: parseFloat(clean.Yards) || 0, Amount: parseFloat(clean.Amount) || 0 });
+      });
       document.getElementById('lastRefreshText').textContent = 'Last: ' + new Date().toLocaleTimeString();
       render();
     }
@@ -585,7 +600,7 @@ function render() {
   const tl = timeLabels[timeView];
 
   // Department filters
-  const depts = [...new Set(allData.map(r => r.Department || r._source).filter(Boolean))];
+  const depts = [...new Set(allData.map(r => r._source || r.Department).filter(Boolean))];
   const deptDiv = document.getElementById('deptFilters');
   deptDiv.innerHTML = depts.map(d =>
     `<button class="filter-pill ${deptFilter === d ? 'active' : ''}" data-dept="${d}" onclick="setDeptFilter('${d}',this)">${d}</button>`
@@ -653,7 +668,7 @@ function renderTrendChart(tf, allFiltered) {
     allFiltered.filter(r => isThisYear(r.Date)).forEach(r => {
       const m = getMonthLabel(r.Date);
       if (!map[m]) map[m] = { m, maint: 0, tree: 0, _d: parseDate(r.Date) };
-      if ((r.Department || r._source) === 'Mantenimiento') map[m].maint += r.Yards || 0;
+      if ((r._source || r.Department) === 'Mantenimiento') map[m].maint += r.Yards || 0;
       else map[m].tree += r.Yards || 0;
     });
     const sorted = Object.values(map).sort((a, b) => (a._d || 0) - (b._d || 0));
@@ -732,7 +747,7 @@ function renderDeptChart(tf) {
 
   const map = {};
   tf.forEach(r => {
-    const d = r.Department || r._source || 'Unknown';
+    const d = r._source || r.Department || 'Unknown';
     map[d] = (map[d] || 0) + (r.Yards || 0);
   });
   const entries = Object.entries(map);
@@ -868,7 +883,7 @@ function renderTable(filtered) {
   ).join('');
 
   body.innerHTML = sorted.slice(0, 200).map(r => {
-    const dept = r.Department || r._source || '';
+    const dept = r._source || r.Department || '';
     const status = r.Status || '';
     const badgeClass = status === 'Paid' ? 'badge-paid' : 'badge-unpaid';
     return `<tr>
@@ -917,7 +932,7 @@ function renderAnalytics() {
   // Parse all records with dates
   var records = allData.map(function(r) {
     var d = parseDate(r.Date);
-    return { date: d, yards: parseFloat(r.Yards) || 0, amount: parseFloat(r.Amount) || 0, dept: r.Department || r._source || '', employee: r.Employee || '', truck: r['Truck #'] || '', source: r._source || '', era: d && d >= WALLEE_DATE ? 'After Wallee' : 'Before Wallee' };
+    return { date: d, yards: parseFloat(r.Yards) || 0, amount: parseFloat(r.Amount) || 0, dept: r._source || r.Department || '', employee: r.Employee || '', truck: r['Truck #'] || '', source: r._source || '', era: d && d >= WALLEE_DATE ? 'After Wallee' : 'Before Wallee' };
   }).filter(function(r) { return r.date; });
 
   // Group by month
