@@ -491,6 +491,23 @@
     </div>
   </div>
 
+  <!-- Driver/Vehicle Breakdown Table -->
+  <div class="table-section fuel-recon-table" style="margin-bottom:24px">
+    <div class="table-header">
+      <h2>Consumption by Driver (2026)</h2>
+      <input class="search-input" type="text" placeholder="Search driver, dept…" oninput="filterFuelDrivers(this.value)" id="fuel-driver-search" />
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Driver</th><th>Department</th><th>Total Gallons</th><th>Loads</th><th>Avg gal/load</th><th>Fuel Types</th>
+        </tr></thead>
+        <tbody id="fuel-driver-body"><tr><td colspan="6"><div class="loading-msg"><div class="loading-spin"></div><br/>Loading…</div></td></tr></tbody>
+      </table>
+    </div>
+    <div class="table-footer" id="fuel-driver-footer">— drivers</div>
+  </div>
+
   <!-- Invoice Table -->
   <div class="table-section fuel-recon-table">
     <div class="table-header">
@@ -711,13 +728,16 @@ function loadFuelData() {
   });
 }
 
+var fuelDriverRows = [];
+var fuelDriverFiltered = [];
+
 function renderFuelPage() {
   // Cards (YTD 2026)
   var purchased = 0, spent = 0;
   fuelInvoiceRows.forEach(function(r){
     var m = String(r['Month']||'');
     if (m.includes('2026')) {
-      var g = parseFloat(r['Gallons'])||0;
+      var g = parseFloat(String(r['Gallons']).replace(/,/g,''))||0;
       var a = parseFloat(String(r['Amount ($)']).replace(/[$,]/g,''))||0;
       purchased += g; spent += a;
     }
@@ -725,21 +745,48 @@ function renderFuelPage() {
   var consumed = 0;
   fuelConsumptionRows.forEach(function(r){
     var m = String(r['Month']||'');
-    if (m.includes('2026')) consumed += parseFloat(r['Gallons'])||0;
+    if (m.includes('2026')) consumed += parseFloat(String(r['Gallons']).replace(/,/g,''))||0;
   });
   document.getElementById('fuel-purchased').textContent = Math.round(purchased).toLocaleString() + ' gal';
   document.getElementById('fuel-consumed').textContent  = Math.round(consumed).toLocaleString() + ' gal';
-  document.getElementById('fuel-balance').textContent   = (Math.round(purchased-consumed)).toLocaleString() + ' gal';
-  document.getElementById('fuel-spent').textContent     = '$' + fmt(spent);
+  var bal = Math.round(purchased - consumed);
+  var balEl = document.getElementById('fuel-balance');
+  balEl.textContent = bal.toLocaleString() + ' gal';
+  balEl.style.color = bal >= 0 ? 'var(--green)' : 'var(--red)';
+  document.getElementById('fuel-spent').textContent = '$' + fmt(spent);
 
   // Reconciliation table
   var reconHtml = fuelReconRows.map(function(r){
     var status = r['Status']||'';
     var cls = status.includes('OK') ? 'fuel-status-ok' : status.includes('Revisar') ? 'fuel-status-warn' : 'fuel-status-bad';
-    var bal = parseFloat(r['Balance (gal)'])||0;
-    return '<tr><td>'+esc(r['Month'])+'</td><td>'+(parseFloat(r['Delivered (gal)'])||0).toLocaleString()+'</td><td>'+(parseFloat(r['Consumed (gal)'])||0).toLocaleString()+'</td><td class="'+(bal>=0?'fuel-status-ok':'fuel-status-bad')+'">'+bal.toLocaleString()+'</td><td class="'+cls+'">'+esc(status)+'</td></tr>';
+    var bal2 = parseFloat(String(r['Balance (gal)']).replace(/,/g,''))||0;
+    var d = parseFloat(String(r['Delivered (gal)']).replace(/,/g,''))||0;
+    var c = parseFloat(String(r['Consumed (gal)']).replace(/,/g,''))||0;
+    return '<tr><td>'+esc(r['Month'])+'</td><td>'+d.toLocaleString()+'</td><td>'+c.toLocaleString()+'</td><td class="'+(bal2>=0?'fuel-status-ok':'fuel-status-bad')+'">'+bal2.toLocaleString()+'</td><td class="'+cls+'">'+esc(status)+'</td></tr>';
   }).join('');
   document.getElementById('fuel-recon-body').innerHTML = reconHtml || '<tr><td colspan="5">No data</td></tr>';
+
+  // Build driver summary from consumption rows (2026)
+  var byDriver = {};
+  fuelConsumptionRows.forEach(function(r){
+    var m = String(r['Month']||'');
+    if (!m.includes('2026')) return;
+    var driver = r['Driver'] || 'Unknown';
+    var dept   = r['Department'] || '';
+    var gal    = parseFloat(String(r['Gallons']).replace(/,/g,''))||0;
+    var fuel   = r['Fuel Type'] || '';
+    if (!byDriver[driver]) byDriver[driver] = { dept: dept, total: 0, loads: 0, fuels: {} };
+    byDriver[driver].total += gal;
+    byDriver[driver].loads += 1;
+    byDriver[driver].fuels[fuel] = (byDriver[driver].fuels[fuel]||0) + 1;
+    if (dept && !byDriver[driver].dept) byDriver[driver].dept = dept;
+  });
+  fuelDriverRows = Object.keys(byDriver).map(function(name){
+    var d = byDriver[name];
+    return { name: name, dept: d.dept, total: d.total, loads: d.loads, avg: d.total/d.loads, fuels: Object.keys(d.fuels).join(', ') };
+  }).sort(function(a,b){ return b.total - a.total; });
+  fuelDriverFiltered = fuelDriverRows.slice();
+  renderFuelDriverTable();
 
   // Invoice table
   fuelInvoiceFiltered = fuelInvoiceRows.slice();
@@ -748,6 +795,33 @@ function renderFuelPage() {
   // Charts
   renderFuelBarChart();
   renderFuelDeptChart();
+}
+
+function filterFuelDrivers(val) {
+  var v = val.toLowerCase();
+  fuelDriverFiltered = !v ? fuelDriverRows.slice() : fuelDriverRows.filter(function(r){
+    return (r.name+r.dept).toLowerCase().includes(v);
+  });
+  renderFuelDriverTable();
+}
+
+function renderFuelDriverTable() {
+  var DEPT_COLORS2 = { 'Mantenimiento':'#22c55e','Landscaping':'#10b981','Tree Trimming':'#84cc16',
+    'Managers':'#3b82f6','Irrigacion':'#06b6d4','Botánico':'#f97316','Pressure Cleaning':'#a855f7',
+    'Pest Control':'#ec4899','Holiday Lights':'#f59e0b','Oficina':'#64748b','Taller':'#94a3b8' };
+  var html = fuelDriverFiltered.map(function(r){
+    var color = DEPT_COLORS2[r.dept]||'#64748b';
+    var deptChip = '<span style="background:'+color+'22;color:'+color+';padding:2px 8px;border-radius:4px;font-size:11px">'+esc(r.dept)+'</span>';
+    var avgStr = r.avg.toFixed(1);
+    var avgColor = r.avg > 60 ? '#ef4444' : r.avg > 40 ? '#f97316' : '#94a3b8';
+    return '<tr><td><strong>'+esc(r.name)+'</strong></td><td>'+deptChip+'</td>'+
+      '<td><strong>'+Math.round(r.total).toLocaleString()+' gal</strong></td>'+
+      '<td>'+r.loads.toLocaleString()+'</td>'+
+      '<td style="color:'+avgColor+'">'+avgStr+' gal</td>'+
+      '<td style="font-size:11px;color:#94a3b8">'+esc(r.fuels)+'</td></tr>';
+  }).join('');
+  document.getElementById('fuel-driver-body').innerHTML = html || '<tr><td colspan="6">No data</td></tr>';
+  document.getElementById('fuel-driver-footer').textContent = fuelDriverFiltered.length + ' drivers';
 }
 
 function filterFuelInvoices(val) {
@@ -770,8 +844,8 @@ function renderFuelInvoiceTable() {
 function renderFuelBarChart() {
   var delivered={}, consumed={};
   fuelReconRows.forEach(function(r){
-    delivered[r['Month']] = parseFloat(r['Delivered (gal)'])||0;
-    consumed[r['Month']]  = parseFloat(r['Consumed (gal)'])||0;
+    delivered[r['Month']] = parseFloat(String(r['Delivered (gal)']).replace(/,/g,''))||0;
+    consumed[r['Month']]  = parseFloat(String(r['Consumed (gal)']).replace(/,/g,''))||0;
   });
   var months = fuelReconRows.map(function(r){ return r['Month']; });
   var ctx = document.getElementById('chart-fuel-bar').getContext('2d');
