@@ -607,12 +607,24 @@ var chartDispDept;
 function showPage(page, el) {
   document.querySelectorAll('.page-tab').forEach(function(t){ t.classList.remove('active'); });
   el.classList.add('active');
-  var allSections = document.querySelectorAll('.filter-row, .cards, .charts, .table-section, .api-bar');
+  // Only hide receipt-page sections (not fuel/disposal inner sections)
+  var receiptSelectors = ['.filter-row', '.cards', '.charts', '.api-bar'];
+  var receiptSections = [];
+  receiptSelectors.forEach(function(sel){
+    document.querySelectorAll(sel).forEach(function(el){ receiptSections.push(el); });
+  });
+  // Also hide top-level .table-section (not ones inside fuel/disposal pages)
+  document.querySelectorAll('.table-section').forEach(function(el){
+    if (!el.closest('#fuel-page') && !el.closest('#disposal-page')) receiptSections.push(el);
+  });
+
   var fuelPage = document.getElementById('fuel-page');
   var dispPage = document.getElementById('disposal-page');
-  allSections.forEach(function(s){ s.style.display = 'none'; });
+
+  receiptSections.forEach(function(s){ s.style.display = 'none'; });
   fuelPage.style.display = 'none';
   dispPage.style.display = 'none';
+
   if (page === 'fuel') {
     fuelPage.style.display = 'block';
     if (!fuelInvoiceRows.length) loadFuelData();
@@ -620,7 +632,7 @@ function showPage(page, el) {
     dispPage.style.display = 'block';
     if (!disposalRows.length) loadDisposalData();
   } else {
-    allSections.forEach(function(s){ s.style.display = ''; });
+    receiptSections.forEach(function(s){ s.style.display = ''; });
   }
 }
 
