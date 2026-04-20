@@ -193,6 +193,32 @@
     .card-value.orange { color: var(--orange); }
     .card-value.purple { color: var(--purple); }
 
+        /* ─── Chart Expand Modal ────────────────────────────────── */
+    .chart-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.8); z-index: 9999;
+      align-items: center; justify-content: center; padding: 32px;
+    }
+    .chart-overlay.open { display: flex; }
+    .chart-overlay-box {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 28px;
+      width: 100%; max-width: 1100px; position: relative;
+    }
+    .chart-overlay-title { font-size: 16px; font-weight: 700; margin-bottom: 20px; }
+    .chart-overlay-close {
+      position: absolute; top: 14px; right: 14px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--muted);
+      width: 34px; height: 34px; cursor: pointer;
+      font-size: 20px; display: flex; align-items: center; justify-content: center;
+    }
+    .chart-overlay-close:hover { color: #fff; }
+    #chart-overlay-canvas { width:100% !important; max-height: 520px; }
+    .chart-wrap { cursor: pointer; }
+    .chart-card { cursor: pointer; transition: border-color .15s; }
+    .chart-card:hover { border-color: var(--blue) !important; }
+
     /* ─── Charts ─────────────────────────────────────────────── */
     .charts {
       display: grid;
@@ -555,6 +581,16 @@
 
 </div><!-- /disposal-page -->
 
+
+<!-- Chart Expand Modal -->
+<div class="chart-overlay" id="chart-overlay" onclick="closeChartModal(event)">
+  <div class="chart-overlay-box">
+    <div class="chart-overlay-title" id="chart-overlay-title"></div>
+    <button class="chart-overlay-close" onclick="closeChartModal()">×</button>
+    <canvas id="chart-overlay-canvas" height="500"></canvas>
+  </div>
+</div>
+
 </div><!-- /app -->
 
 <script>
@@ -681,6 +717,7 @@ function renderDisposalPage() {
     options: { responsive:true, maintainAspectRatio:false, plugins: CHART_DEFAULTS.plugins,
       scales:{ x:{ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,.05)'}}, y:{ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,.05)'}} } }
   });
+  registerChart('chart-disp-dept', 'Receipts by Department', chartDispDept.config.type, chartDispDept.config.data, chartDispDept.config.options);
 }
 
 function renderDisposalTable() {
@@ -933,6 +970,7 @@ function renderFuelBarChart(conRows, invRows) {
     options: { responsive:true, maintainAspectRatio:false, plugins: CHART_DEFAULTS.plugins,
       scales:{ x:{ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,.05)'}}, y:{ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,.05)'}} } }
   });
+  registerChart('chart-fuel-bar', 'Monthly Delivered vs Consumed', chartFuelBar.config.type, chartFuelBar.config.data, chartFuelBar.config.options);
 }
 
 function renderFuelDeptChart(conRows) {
@@ -950,6 +988,7 @@ function renderFuelDeptChart(conRows) {
     data: { labels:depts, datasets:[{ data:depts.map(function(d){return byDept[d];}), backgroundColor:COLORS, borderColor:'#273449', borderWidth:2 }] },
     options: { responsive:true, maintainAspectRatio:false, cutout:'60%', plugins: CHART_DEFAULTS.plugins }
   });
+  registerChart('chart-fuel-dept', 'Consumption by Department', chartFuelDept.config.type, chartFuelDept.config.data, chartFuelDept.config.options);
 }
 
 // ─── Data Loading — reads directly from public Google Sheet ──────────────────
@@ -1132,6 +1171,7 @@ function renderLineChart() {
       plugins: CHART_DEFAULTS.plugins
     }
   });
+  registerChart('chart-line', 'Spending Over Time', chartLine.config.type, chartLine.config.data, chartLine.config.options);
 }
 
 function renderDonutChart() {
@@ -1170,6 +1210,7 @@ function renderDonutChart() {
       })
     }
   });
+  registerChart('chart-donut', 'By Department', chartDonut.config.type, chartDonut.config.data, chartDonut.config.options);
 }
 
 function renderBarChart() {
@@ -1204,6 +1245,7 @@ function renderBarChart() {
       plugins: CHART_DEFAULTS.plugins
     }
   });
+  registerChart('chart-bar', 'Top Stores', chartBar.config.type, chartBar.config.data, chartBar.config.options);
 }
 
 // ─── Table ─────────────────────────────────────────────────────────────────────
@@ -1313,6 +1355,44 @@ function exportCSV() {
   a.download = 'epic-receipts-' + new Date().toISOString().slice(0,10) + '.csv';
   a.click();
 }
+
+// ─── Chart Modal ──────────────────────────────────────────────────────────────
+var overlayChart = null;
+var chartRegistry = {}; // id -> { config, title }
+
+function registerChart(id, title, type, data, options) {
+  chartRegistry[id] = { title: title, type: type, data: data, options: options };
+}
+
+function openChartModal(id) {
+  var reg = chartRegistry[id];
+  if (!reg) return;
+  document.getElementById('chart-overlay-title').textContent = reg.title;
+  document.getElementById('chart-overlay').classList.add('open');
+  var ctx = document.getElementById('chart-overlay-canvas').getContext('2d');
+  if (overlayChart) overlayChart.destroy();
+  overlayChart = new Chart(ctx, {
+    type: reg.type,
+    data: JSON.parse(JSON.stringify(reg.data)),
+    options: Object.assign({}, reg.options, { responsive: true, maintainAspectRatio: false })
+  });
+}
+
+function closeChartModal(e) {
+  if (e && e.target !== document.getElementById('chart-overlay')) return;
+  document.getElementById('chart-overlay').classList.remove('open');
+  if (overlayChart) { overlayChart.destroy(); overlayChart = null; }
+}
+
+// Make chart-card and chart-wrap divs with canvases clickable
+document.addEventListener('click', function(e) {
+  var card = e.target.closest('.chart-card') || e.target.closest('.chart-wrap');
+  if (!card) return;
+  var canvas = card.querySelector('canvas');
+  if (!canvas) return;
+  openChartModal(canvas.id);
+});
+
 </script>
 </body>
 </html>
