@@ -86,6 +86,7 @@
 
     /* ─── Fuel Page ─────────────────────────────────────────── */
     #fuel-page { display: none; }
+    #disposal-page { display: none; }
     .fuel-recon-table table { width:100%; border-collapse:collapse; font-size:13px; }
     .fuel-recon-table th { background: var(--surface); color: var(--muted); padding: 10px 14px; text-align:left; font-weight:500; }
     .fuel-recon-table td { padding: 10px 14px; border-top: 1px solid var(--border); }
@@ -320,6 +321,7 @@
   <nav class="page-nav">
     <button class="page-tab active" onclick="showPage('receipts',this)" id="tab-receipts">🧾 Receipts</button>
     <button class="page-tab" onclick="showPage('fuel',this)" id="tab-fuel">⛽ Fuel</button>
+    <button class="page-tab" onclick="showPage('disposal',this)" id="tab-disposal">🗑️ Disposal</button>
   </nav>
 
   <div class="status-pill">
@@ -508,6 +510,41 @@
 
 </div><!-- /fuel-page -->
 
+<!-- ───────────────── DISPOSAL PAGE ───────────────── -->
+<div id="disposal-page">
+
+  <div class="fuel-cards">
+    <div class="card"><div class="card-label">Total Receipts</div><div class="card-value green" id="disp-count">—</div><div class="card-sub">all time</div></div>
+    <div class="card"><div class="card-label">Mantenimiento</div><div class="card-value blue" id="disp-mant">—</div><div class="card-sub">receipts</div></div>
+    <div class="card"><div class="card-label">Tree Trimming</div><div class="card-value orange" id="disp-tree">—</div><div class="card-sub">receipts</div></div>
+    <div class="card"><div class="card-label">Basura Rastra</div><div class="card-value purple" id="disp-rastra">—</div><div class="card-sub">receipts</div></div>
+  </div>
+
+  <div class="charts" style="margin-bottom:24px">
+    <div class="chart-card wide">
+      <div class="chart-title">Receipts by Department</div>
+      <div class="chart-wrap"><canvas id="chart-disp-dept"></canvas></div>
+    </div>
+  </div>
+
+  <div class="table-section fuel-recon-table">
+    <div class="table-header">
+      <h2>Disposal Receipts</h2>
+      <input class="search-input" type="text" placeholder="Search receipt, employee, truck…" oninput="filterDisposal(this.value)" id="disp-search" />
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Date</th><th>Dept</th><th>Receipt #</th><th>Client</th><th>Yards</th><th>Truck</th><th>Employee</th><th>Amount</th><th>Photo</th>
+        </tr></thead>
+        <tbody id="disp-body"><tr><td colspan="9"><div class="loading-msg"><div class="loading-spin"></div><br/>Loading…</div></td></tr></tbody>
+      </table>
+    </div>
+    <div class="table-footer" id="disp-footer">— receipts</div>
+  </div>
+
+</div><!-- /disposal-page -->
+
 </div><!-- /app -->
 
 <script>
@@ -546,21 +583,92 @@ var fuelConsumptionRows = [];
 var fuelReconRows = [];
 var chartFuelBar, chartFuelDept;
 
+var disposalRows = [];
+var disposalFiltered = [];
+var chartDispDept;
+
 function showPage(page, el) {
   document.querySelectorAll('.page-tab').forEach(function(t){ t.classList.remove('active'); });
   el.classList.add('active');
-  var receiptPage = document.querySelector('.filter-row, .cards, .charts, .table-section');
-  // show/hide sections
   var allSections = document.querySelectorAll('.filter-row, .cards, .charts, .table-section, .api-bar');
   var fuelPage = document.getElementById('fuel-page');
+  var dispPage = document.getElementById('disposal-page');
+  allSections.forEach(function(s){ s.style.display = 'none'; });
+  fuelPage.style.display = 'none';
+  dispPage.style.display = 'none';
   if (page === 'fuel') {
-    allSections.forEach(function(s){ s.style.display = 'none'; });
     fuelPage.style.display = 'block';
     if (!fuelInvoiceRows.length) loadFuelData();
+  } else if (page === 'disposal') {
+    dispPage.style.display = 'block';
+    if (!disposalRows.length) loadDisposalData();
   } else {
     allSections.forEach(function(s){ s.style.display = ''; });
-    fuelPage.style.display = 'none';
   }
+}
+
+function loadDisposalData() {
+  var url = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:json&sheet=' + encodeURIComponent('Disposal');
+  fetch(url).then(function(r){ return r.text(); }).then(function(text){
+    var json = text.replace(/^\/\*[^*]*\*\/\s*/,'').replace(/^[^(]*\(/,'').replace(/\);?\s*$/,'');
+    var gviz = JSON.parse(json);
+    var cols = gviz.table.cols.map(function(c){ return c.label; });
+    disposalRows = (gviz.table.rows||[]).map(function(row){
+      var obj={};
+      row.c.forEach(function(cell,i){ obj[cols[i]] = cell ? (cell.f||cell.v||'') : ''; });
+      return obj;
+    }).filter(function(r){ return r['Receipt #'] || r['Date']; });
+    disposalFiltered = disposalRows.slice();
+    renderDisposalPage();
+  }).catch(function(e){
+    document.getElementById('disp-body').innerHTML = '<tr><td colspan="9">No data yet — disposal receipts will appear here as they are processed.</td></tr>';
+    document.getElementById('disp-count').textContent = '0';
+    document.getElementById('disp-mant').textContent = '0';
+    document.getElementById('disp-tree').textContent = '0';
+    document.getElementById('disp-rastra').textContent = '0';
+  });
+}
+
+function filterDisposal(val) {
+  var v = val.toLowerCase();
+  disposalFiltered = !v ? disposalRows.slice() : disposalRows.filter(function(r){
+    return Object.values(r).join(' ').toLowerCase().includes(v);
+  });
+  renderDisposalTable();
+}
+
+function renderDisposalPage() {
+  var byDept = {};
+  disposalRows.forEach(function(r){
+    var d = r['Department']||'Unknown';
+    byDept[d] = (byDept[d]||0) + 1;
+  });
+  document.getElementById('disp-count').textContent = disposalRows.length.toLocaleString();
+  document.getElementById('disp-mant').textContent = (byDept['Mantenimiento']||0).toLocaleString();
+  document.getElementById('disp-tree').textContent = (byDept['Tree Trimming']||0).toLocaleString();
+  document.getElementById('disp-rastra').textContent = (byDept['Basura Rastra']||0).toLocaleString();
+  renderDisposalTable();
+  // Dept chart
+  var depts = Object.keys(byDept);
+  var COLORS=['#22c55e','#3b82f6','#f97316','#a855f7','#06b6d4','#84cc16'];
+  var ctx = document.getElementById('chart-disp-dept').getContext('2d');
+  if (chartDispDept) chartDispDept.destroy();
+  chartDispDept = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: depts, datasets:[{ label:'Receipts', data: depts.map(function(d){return byDept[d];}), backgroundColor: COLORS, borderRadius:6 }] },
+    options: { responsive:true, maintainAspectRatio:false, plugins: CHART_DEFAULTS.plugins,
+      scales:{ x:{ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,.05)'}}, y:{ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,.05)'}} } }
+  });
+}
+
+function renderDisposalTable() {
+  var html = disposalFiltered.map(function(r){
+    var photo = r['Photo Link'] ? '<a href="'+esc(r['Photo Link'])+'" target="_blank">📷</a>' : '—';
+    var amt = r['Amount'] && r['Amount']!='0' ? '$'+r['Amount'] : '—';
+    return '<tr><td>'+esc(r['Date'])+'</td><td>'+esc(r['Department'])+'</td><td>'+esc(r['Receipt #'])+'</td><td>'+esc(r['Client'])+'</td><td>'+esc(r['Yards'])+'</td><td>'+esc(r['Truck'])+'</td><td>'+esc(r['Employee'])+'</td><td>'+amt+'</td><td>'+photo+'</td></tr>';
+  }).join('');
+  document.getElementById('disp-body').innerHTML = html || '<tr><td colspan="9">No receipts match the filter.</td></tr>';
+  document.getElementById('disp-footer').textContent = disposalFiltered.length.toLocaleString() + ' receipts';
 }
 
 window.addEventListener('DOMContentLoaded', function() {
