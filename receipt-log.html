@@ -367,6 +367,7 @@
   <!-- Filters -->
   <div class="filter-row">
     <div class="filter-group" id="time-chips">
+      <div class="chip"        data-days="today" onclick="setDays('today',this)">Today</div>
       <div class="chip active" data-days="7"   onclick="setDays(7,this)">Last 7d</div>
       <div class="chip"        data-days="30"  onclick="setDays(30,this)">Last 30d</div>
       <div class="chip"        data-days="mtd" onclick="setDays('mtd',this)">This Month</div>
@@ -432,6 +433,7 @@
     <div class="table-header">
       <h2>All Receipts</h2>
       <input class="search-input" type="text" placeholder="Search store, dept, employee…" oninput="filterTable(this.value)" id="search-box" />
+      <input class="search-input" type="text" placeholder="Filter by Customer / Job…" oninput="filterTable(this.value)" id="customer-box" style="margin-top:6px" />
     </div>
     <div class="table-wrap">
       <table id="receipts-table">
@@ -467,6 +469,7 @@
   <!-- Period filters -->
   <div class="filter-row" style="margin-bottom:20px">
     <div class="filter-group" id="fuel-time-chips">
+      <div class="chip" data-fperiod="today" onclick="setFuelPeriod('today',this)">Today</div>
       <div class="chip" data-fperiod="7"   onclick="setFuelPeriod(7,this)">Last 7d</div>
       <div class="chip" data-fperiod="30"  onclick="setFuelPeriod(30,this)">Last 30d</div>
       <div class="chip active" data-fperiod="ytd" onclick="setFuelPeriod('ytd',this)">This Year</div>
@@ -783,6 +786,7 @@ function setFuelPeriod(p, el) {
 
 function fuelDateCutoff() {
   var now = new Date();
+  if (fuelPeriod === 'today') return new Date(now.getFullYear(), now.getMonth(), now.getDate());
   if (fuelPeriod === 'ytd') return new Date(now.getFullYear(), 0, 1);
   if (fuelPeriod === 'all') return new Date(2020, 0, 1);
   var d = new Date(now); d.setDate(d.getDate() - parseInt(fuelPeriod)); return d;
@@ -1037,6 +1041,9 @@ function normalizeRow(r) {
 // ─── Filtering ────────────────────────────────────────────────────────────────
 function getDayCutoff(days) {
   var now = new Date();
+  if (days === 'today') {
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  }
   if (days === 'mtd') {
     return new Date(now.getFullYear(), now.getMonth(), 1);
   }
@@ -1052,12 +1059,17 @@ function applyFilters() {
   var cutoff = getDayCutoff(currentDays);
   var search = document.getElementById('search-box').value.toLowerCase();
 
+  var customer = document.getElementById('customer-box') ? document.getElementById('customer-box').value.toLowerCase() : '';
   filteredRows = allRows.filter(function(r) {
     if (r._date < cutoff) return false;
     if (currentDept !== 'All' && r['Department'] !== currentDept) return false;
     if (search) {
-      var haystack = [r['Store'], r['Department'], r['Employee'], r['Items'], r['Receipt#']].join(' ').toLowerCase();
+      var haystack = [r['Store'], r['Department'], r['Employee'], r['Items'], r['Receipt#'], r['Job/Cliente']].join(' ').toLowerCase();
       if (!haystack.includes(search)) return false;
+    }
+    if (customer) {
+      var jobField = (r['Job/Cliente'] || '').toLowerCase();
+      if (!jobField.includes(customer)) return false;
     }
     return true;
   });
