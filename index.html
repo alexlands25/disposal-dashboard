@@ -487,13 +487,13 @@
   <!-- CFO Leaderboard + Charts row -->
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:24px">
     <!-- Top consumers -->
-    <div class="card" style="padding:0;overflow:hidden">
-      <div style="padding:14px 18px;border-bottom:1px solid var(--border);font-weight:600;font-size:13px">🔥 Top Consumers</div>
+    <div class="card" style="padding:0;overflow:hidden;cursor:pointer" onclick="openLeaderboardModal('top')">
+      <div style="padding:14px 18px;border-bottom:1px solid var(--border);font-weight:600;font-size:13px">🔥 Top Consumers <span style="float:right;font-size:11px;color:var(--muted);font-weight:400">tap to expand</span></div>
       <div id="fuel-top5" style="padding:10px 0"></div>
     </div>
-    <!-- Below average -->
-    <div class="card" style="padding:0;overflow:hidden">
-      <div style="padding:14px 18px;border-bottom:1px solid var(--border);font-weight:600;font-size:13px">✅ Most Efficient</div>
+    <!-- Most efficient -->
+    <div class="card" style="padding:0;overflow:hidden;cursor:pointer" onclick="openLeaderboardModal('low')">
+      <div style="padding:14px 18px;border-bottom:1px solid var(--border);font-weight:600;font-size:13px">✅ Most Efficient <span style="float:right;font-size:11px;color:var(--muted);font-weight:400">tap to expand</span></div>
       <div id="fuel-low5" style="padding:10px 0"></div>
     </div>
     <!-- Dept donut -->
@@ -1355,6 +1355,68 @@ function exportCSV() {
   a.download = 'epic-receipts-' + new Date().toISOString().slice(0,10) + '.csv';
   a.click();
 }
+
+
+// ─── Leaderboard Modal ─────────────────────────────────────────────────────────
+function openLeaderboardModal(mode) {
+  var title = mode === 'top' ? '🔥 Top Consumers' : '✅ Most Efficient';
+  var rows = mode === 'top'
+    ? fuelDriverRows.slice().sort(function(a,b){return b.total-a.total;})
+    : fuelDriverRows.slice().sort(function(a,b){return a.avg-b.avg;});
+
+  var medals = ['🥇','🥈','🥉'];
+  var html = '<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="color:var(--muted);font-size:11px;text-transform:uppercase">' +
+    '<th style="padding:8px 12px;text-align:left">#</th>' +
+    '<th style="padding:8px 12px;text-align:left">Driver</th>' +
+    '<th style="padding:8px 12px;text-align:left">Dept</th>' +
+    '<th style="padding:8px 12px;text-align:right">Total Gal</th>' +
+    '<th style="padding:8px 12px;text-align:right">Loads</th>' +
+    '<th style="padding:8px 12px;text-align:right">Avg/Load</th>' +
+    '</tr></thead><tbody>';
+  rows.forEach(function(r, i) {
+    var avgColor = r.avg > 80 ? '#ef4444' : r.avg > 50 ? '#f97316' : '#22c55e';
+    html += '<tr style="border-top:1px solid var(--border)">' +
+      '<td style="padding:8px 12px;color:var(--muted)">' + (medals[i]||i+1) + '</td>' +
+      '<td style="padding:8px 12px;font-weight:600">' + esc(r.name) + '</td>' +
+      '<td style="padding:8px 12px;color:var(--muted);font-size:12px">' + esc(r.dept) + '</td>' +
+      '<td style="padding:8px 12px;text-align:right;' + (mode==='top'?'color:#ef4444':'') + '">' + Math.round(r.total).toLocaleString() + '</td>' +
+      '<td style="padding:8px 12px;text-align:right;color:var(--muted)">' + r.loads + '</td>' +
+      '<td style="padding:8px 12px;text-align:right;color:' + avgColor + '">' + r.avg.toFixed(1) + '</td>' +
+      '</tr>';
+  });
+  html += '</tbody></table>';
+
+  document.getElementById('chart-overlay-title').innerHTML = title + ' <span style="font-size:12px;color:var(--muted);font-weight:400">(' + rows.length + ' drivers)</span>';
+  var canvas = document.getElementById('chart-overlay-canvas');
+  canvas.style.display = 'none';
+  var existing = document.getElementById('leader-modal-body');
+  if (existing) existing.remove();
+  var div = document.createElement('div');
+  div.id = 'leader-modal-body';
+  div.style.cssText = 'max-height:65vh;overflow-y:auto;margin-top:4px';
+  div.innerHTML = html;
+  canvas.parentNode.insertBefore(div, canvas);
+  document.getElementById('chart-overlay').classList.add('open');
+}
+
+// Override close to clean up leaderboard table
+(function(){
+  var overlay = document.getElementById('chart-overlay');
+  overlay.addEventListener('click', function(e){
+    if (e.target !== overlay) return;
+    _closeModal();
+  });
+  document.querySelector('.chart-overlay-close').addEventListener('click', _closeModal);
+  function _closeModal(){
+    overlay.classList.remove('open');
+    var t = document.getElementById('leader-modal-body');
+    if (t) t.remove();
+    document.getElementById('chart-overlay-canvas').style.display = '';
+    if (overlayChart){ overlayChart.destroy(); overlayChart = null; }
+  }
+  // Expose for openChartModal to also use
+  window._closeModal = _closeModal;
+})();
 
 // ─── Chart Modal ──────────────────────────────────────────────────────────────
 var overlayChart = null;
