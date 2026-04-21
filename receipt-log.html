@@ -347,7 +347,7 @@
   <nav class="page-nav">
     <button class="page-tab active" onclick="showPage('receipts',this)" id="tab-receipts">🧾 Receipts</button>
     <button class="page-tab" onclick="showPage('fuel',this)" id="tab-fuel">⛽ Fuel</button>
-    <a href="https://alexlands25.github.io/disposal-dashboard/" target="_blank" class="page-tab">🗑️ Disposal ↗️</a>
+    <a href="https://alexlands25.github.io/disposal-dashboard/" target="_blank" class="page-tab" style="text-decoration:none;display:inline-flex;align-items:center">🗑️ Disposal ↗️</a>
   </nav>
 
   <div class="status-pill">
@@ -499,14 +499,14 @@
     <!-- Dept donut -->
     <div class="card" style="padding:14px">
       <div style="font-weight:600;font-size:13px;margin-bottom:10px">By Department</div>
-      <div style="height:180px;position:relative"><canvas id="chart-fuel-dept"></canvas></div>
+      <div class="chart-card" style="height:180px;position:relative;cursor:pointer"><canvas id="chart-fuel-dept"></canvas></div>
     </div>
   </div>
 
   <!-- Monthly bar chart -->
   <div class="card" style="padding:16px;margin-bottom:24px">
     <div style="font-weight:600;font-size:13px;margin-bottom:12px">Monthly Delivered vs Consumed (gallons)</div>
-    <div style="height:220px;position:relative"><canvas id="chart-fuel-bar"></canvas></div>
+    <div class="chart-card" style="height:220px;position:relative;cursor:pointer"><canvas id="chart-fuel-bar"></canvas></div>
   </div>
 
   <!-- Reconciliation -->
