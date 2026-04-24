@@ -552,23 +552,88 @@
 <!-- ───────────────── DISPOSAL PAGE ───────────────── -->
 <div id="disposal-page">
 
-  <div class="fuel-cards">
-    <div class="card"><div class="card-label">Total Receipts</div><div class="card-value green" id="disp-count">—</div><div class="card-sub">all time</div></div>
-    <div class="card"><div class="card-label">Mantenimiento</div><div class="card-value blue" id="disp-mant">—</div><div class="card-sub">receipts</div></div>
-    <div class="card"><div class="card-label">Tree Trimming</div><div class="card-value orange" id="disp-tree">—</div><div class="card-sub">receipts</div></div>
-    <div class="card"><div class="card-label">Basura Rastra</div><div class="card-value purple" id="disp-rastra">—</div><div class="card-sub">receipts</div></div>
-  </div>
-
-  <div class="charts" style="margin-bottom:24px">
-    <div class="chart-card wide">
-      <div class="chart-title">Receipts by Department</div>
-      <div class="chart-wrap"><canvas id="chart-disp-dept"></canvas></div>
+  <!-- Year Filter -->
+  <div class="filter-row" style="margin-bottom:20px">
+    <div class="filter-group" id="disp-year-chips">
+      <div class="chip" data-year="2024" onclick="setDispYear('2024',this)">2024</div>
+      <div class="chip" data-year="2025" onclick="setDispYear('2025',this)">2025</div>
+      <div class="chip active" data-year="2026" onclick="setDispYear('2026',this)">2026</div>
+      <div class="chip" data-year="all" onclick="setDispYear('all',this)">All Time</div>
     </div>
   </div>
 
+  <!-- Summary Stats -->
+  <div class="fuel-cards" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin-bottom:24px">
+    <div class="card"><div class="card-label">Total Yards</div><div class="card-value green" id="disp-yards">—</div><div class="card-sub">all loads</div></div>
+    <div class="card"><div class="card-label">Total Loads</div><div class="card-value blue" id="disp-count">—</div><div class="card-sub">receipts</div></div>
+    <div class="card"><div class="card-label">Avg Yards/Load</div><div class="card-value orange" id="disp-avg-yards">—</div><div class="card-sub">average</div></div>
+    <div class="card"><div class="card-label">Paid to Organically</div><div class="card-value purple" id="disp-org-total">—</div><div class="card-sub">los tomates</div></div>
+    <div class="card"><div class="card-label">Cost / Yard</div><div class="card-value" style="color:#f43f5e" id="disp-cost-yard">—</div><div class="card-sub">avg per yard</div></div>
+  </div>
+
+  <!-- Charts 2x2 -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px" id="disp-charts-grid">
+    <div class="chart-card wide" style="grid-column:span 2" onclick="openChartModal('chart-disp-months','Yards by Month')">
+      <div class="chart-title">📅 Yards by Month</div>
+      <div class="chart-wrap"><canvas id="chart-disp-months"></canvas></div>
+    </div>
+    <div class="chart-card" onclick="openChartModal('chart-disp-truck','Loads by Truck (Top 15)')">
+      <div class="chart-title">🚛 Loads by Truck (Top 15)</div>
+      <div class="chart-wrap" style="height:280px"><canvas id="chart-disp-truck"></canvas></div>
+    </div>
+    <div class="chart-card" onclick="openChartModal('chart-disp-dept','Yards by Department')">
+      <div class="chart-title">🏢 Yards by Dept</div>
+      <div class="chart-wrap"><canvas id="chart-disp-dept"></canvas></div>
+    </div>
+    <div class="chart-card wide" style="grid-column:span 2" onclick="openChartModal('chart-disp-org-cost','Monthly Organically Cost')">
+      <div class="chart-title">💰 Monthly Cost — Organically (los tomates)</div>
+      <div class="chart-wrap"><canvas id="chart-disp-org-cost"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Epic HQ Section -->
+  <div class="table-section" style="margin-bottom:24px">
+    <div class="table-header" style="background:rgba(251,191,36,.05);border-color:#fbbf24">
+      <h2 style="color:#fbbf24">🏠 Epic HQ Disposal</h2>
+      <span style="color:var(--muted);font-size:12px">Client = "EPIC" — loads dumped at headquarters</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;padding:16px;border-bottom:1px solid var(--border)">
+      <div class="card" style="margin:0"><div class="card-label">HQ Loads</div><div class="card-value" style="color:#fbbf24" id="hq-loads">—</div></div>
+      <div class="card" style="margin:0"><div class="card-label">HQ Yards</div><div class="card-value" style="color:#fbbf24" id="hq-yards">—</div></div>
+      <div class="card" style="margin:0"><div class="card-label">Est. Cost</div><div class="card-value" style="color:#fbbf24" id="hq-cost">—</div><div class="card-sub">avg $/yard × HQ yards</div></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Date</th><th>Receipt #</th><th>Yards</th><th>Truck</th><th>Employee</th><th>Type</th></tr></thead>
+        <tbody id="hq-body"><tr><td colspan="6"><div class="loading-msg">Loading…</div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Organically Reconciliation -->
+  <div class="table-section" style="margin-bottom:24px">
+    <div class="table-header" style="cursor:pointer" onclick="toggleRecon()">
+      <h2>🔍 Organically Reconciliation</h2>
+      <span id="recon-toggle" style="color:var(--muted);font-size:18px">▼</span>
+    </div>
+    <div id="recon-body" style="display:none">
+      <div style="padding:12px 20px;color:var(--muted);font-size:12px;border-bottom:1px solid var(--border)">
+        Cruza ticket # de Organically vs nuestros recibos. 🟢 Matched = ticket encontrado. 🟠 No Match = no está en nuestros records (posible error de cobro).
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Invoice #</th><th>Date</th><th>Ticket #</th><th>Truck</th><th>Activity</th><th>Amount</th><th>Status</th></tr></thead>
+          <tbody id="recon-table-body"><tr><td colspan="7"><div class="loading-msg"><div class="loading-spin"></div><br/>Loading Organically data…</div></td></tr></tbody>
+        </table>
+      </div>
+      <div class="table-footer" id="recon-footer">—</div>
+    </div>
+  </div>
+
+  <!-- Full Table -->
   <div class="table-section fuel-recon-table">
     <div class="table-header">
-      <h2>Disposal Receipts</h2>
+      <h2>All Disposal Receipts</h2>
       <input class="search-input" type="text" placeholder="Search receipt, employee, truck…" oninput="filterDisposal(this.value)" id="disp-search" />
     </div>
     <div class="table-wrap">
@@ -634,6 +699,9 @@ var chartFuelBar, chartFuelDept;
 
 var disposalRows = [];
 var disposalFiltered = [];
+var organicallyRows = [];
+var dispYearFilter = '2026';
+var chartDispMonths = null, chartDispTruck = null, chartDispDeptNew = null, chartDispOrgCost = null;
 var chartDispDept;
 
 function showPage(page, el) {
@@ -663,6 +731,7 @@ function showPage(page, el) {
   } else if (page === 'disposal') {
     dispPage.style.display = 'block';
     if (!disposalRows.length) loadDisposalData();
+    if (!organicallyRows.length) loadOrganicallyData();
   } else {
     receiptSections.forEach(function(s){ s.style.display = ''; });
   }
@@ -699,16 +768,7 @@ function filterDisposal(val) {
 }
 
 function renderDisposalPage() {
-  var byDept = {};
-  disposalRows.forEach(function(r){
-    var d = r['Department']||'Unknown';
-    byDept[d] = (byDept[d]||0) + 1;
-  });
-  document.getElementById('disp-count').textContent = disposalRows.length.toLocaleString();
-  document.getElementById('disp-mant').textContent = (byDept['Mantenimiento']||0).toLocaleString();
-  document.getElementById('disp-tree').textContent = (byDept['Tree Trimming']||0).toLocaleString();
-  document.getElementById('disp-rastra').textContent = (byDept['Basura Rastra']||0).toLocaleString();
-  renderDisposalTable();
+  renderDisposalAnalytics();
   // Dept chart
   var depts = Object.keys(byDept);
   var COLORS=['#22c55e','#3b82f6','#f97316','#a855f7','#06b6d4','#84cc16'];
@@ -721,6 +781,184 @@ function renderDisposalPage() {
       scales:{ x:{ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,.05)'}}, y:{ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,.05)'}} } }
   });
   registerChart('chart-disp-dept', 'Receipts by Department', chartDispDept.config.type, chartDispDept.config.data, chartDispDept.config.options);
+}
+
+function setDispYear(yr, el) {
+  dispYearFilter = yr;
+  document.querySelectorAll('#disp-year-chips .chip').forEach(function(c){ c.classList.remove('active'); });
+  el.classList.add('active');
+  renderDisposalAnalytics();
+}
+
+function dispFilteredRows() {
+  if (dispYearFilter === 'all') return disposalRows;
+  return disposalRows.filter(function(r) {
+    return (r['Date']||'').includes(dispYearFilter) || (r['Processed Date']||'').includes(dispYearFilter);
+  });
+}
+
+function loadOrganicallyData() {
+  var url = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:json&sheet=' + encodeURIComponent('Organically');
+  fetch(url).then(function(r){ return r.text(); }).then(function(text){
+    var json = text.replace(/^\/\*[^*]*\*\/\s*/,'').replace(/^[^(]*\(/,'').replace(/\);?\s*$/,'');
+    var gviz = JSON.parse(json);
+    var cols = gviz.table.cols.map(function(c){ return c.label; });
+    organicallyRows = (gviz.table.rows||[]).map(function(row){
+      var obj={};
+      row.c.forEach(function(cell,i){ obj[cols[i]] = cell ? (cell.f||cell.v||'') : ''; });
+      return obj;
+    }).filter(function(r){ return r['Ticket #'] || r['Invoice #']; });
+    renderDisposalAnalytics();
+  }).catch(function(e){ console.warn('Organically load failed', e); });
+}
+
+function toggleRecon() {
+  var body = document.getElementById('recon-body');
+  var tog = document.getElementById('recon-toggle');
+  if (body.style.display === 'none') {
+    body.style.display = 'block';
+    tog.textContent = '▲';
+    renderReconTable();
+  } else {
+    body.style.display = 'none';
+    tog.textContent = '▼';
+  }
+}
+
+function renderReconTable() {
+  var ticketSet = new Set(disposalRows.map(function(r){ return String(r['Receipt #']).trim(); }));
+  var html = organicallyRows.map(function(r){
+    var ticket = String(r['Ticket #']||'').trim();
+    var matched = ticket && ticketSet.has(ticket);
+    var status = ticket
+      ? (matched ? '<span style="color:#22c55e;font-weight:600">✅ Matched</span>' : '<span style="color:#f97316;font-weight:600">⚠️ No Match</span>')
+      : '<span style="color:#94a3b8">—</span>';
+    var amt = r['Amount'] ? '$'+parseFloat(r['Amount']).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
+    return '<tr><td>'+esc(r['Invoice #'])+'</td><td>'+esc(r['Date'])+'</td><td>'+esc(ticket)+'</td><td>'+esc(r['Truck'])+'</td><td>'+esc(r['Activity Type'])+'</td><td>'+amt+'</td><td>'+status+'</td></tr>';
+  }).join('');
+  document.getElementById('recon-table-body').innerHTML = html || '<tr><td colspan="7">No Organically data loaded.</td></tr>';
+  var matched = organicallyRows.filter(function(r){ return ticketSet.has(String(r['Ticket #']||'').trim()); }).length;
+  document.getElementById('recon-footer').textContent = organicallyRows.length + ' Organically line items — ' + matched + ' matched — ' + (organicallyRows.length - matched) + ' unmatched';
+}
+
+function renderDisposalAnalytics() {
+  var rows = dispFilteredRows();
+  // Stats
+  var totalYards = 0, totalLoads = rows.length;
+  rows.forEach(function(r){ totalYards += parseFloat(r['Yards'])||0; });
+  var avgYards = totalLoads ? (totalYards/totalLoads).toFixed(1) : 0;
+
+  // Organically total (filter by year)
+  var orgRows = dispYearFilter === 'all' ? organicallyRows : organicallyRows.filter(function(r){
+    return (r['Invoice Date']||r['Date']||'').includes(dispYearFilter);
+  });
+  var orgTotal = 0;
+  orgRows.forEach(function(r){ orgTotal += parseFloat(r['Amount'])||0; });
+  var costPerYard = totalYards > 0 ? (orgTotal/totalYards).toFixed(2) : 0;
+
+  var fmt = function(n){ return n.toLocaleString('en-US'); };
+  var fmtD = function(n){ return '$'+parseFloat(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); };
+
+  document.getElementById('disp-yards').textContent = fmt(Math.round(totalYards));
+  document.getElementById('disp-count').textContent = fmt(totalLoads);
+  document.getElementById('disp-avg-yards').textContent = avgYards;
+  document.getElementById('disp-org-total').textContent = orgTotal > 0 ? fmtD(orgTotal) : '—';
+  document.getElementById('disp-cost-yard').textContent = costPerYard > 0 ? '$'+costPerYard : '—';
+
+  // --- Chart 1: Yards by Month (stacked bar) ---
+  var months = {};
+  rows.forEach(function(r){
+    var d = r['Date']||'';
+    var m = d.length>=7 ? d.substring(0,7) : null;
+    if (!m) return;
+    // Normalize MM/DD/YYYY -> YYYY-MM
+    if (m.indexOf('/')>-1) { var p=d.split('/'); if(p.length>=3) m=p[2]+'-'+p[0].padStart(2,'0'); }
+    if (!months[m]) months[m] = {mant:0, tree:0};
+    var dept = r['Department']||'';
+    var yds = parseFloat(r['Yards'])||0;
+    if (dept.includes('Mantenimiento')) months[m].mant += yds;
+    else months[m].tree += yds;
+  });
+  var mKeys = Object.keys(months).sort().slice(-12);
+  var ctx1 = document.getElementById('chart-disp-months').getContext('2d');
+  if (chartDispMonths) chartDispMonths.destroy();
+  chartDispMonths = new Chart(ctx1, {
+    type:'bar',
+    data:{ labels: mKeys,
+      datasets:[
+        { label:'Mantenimiento', data: mKeys.map(function(k){return months[k].mant;}), backgroundColor:'#3b82f6', borderRadius:4 },
+        { label:'Tree Trimming', data: mKeys.map(function(k){return months[k].tree;}), backgroundColor:'#22c55e', borderRadius:4 }
+      ]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins: CHART_DEFAULTS.plugins,
+      scales:{ x:{stacked:true,ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,.05)'}}, y:{stacked:true,ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,.05)'}} } }
+  });
+  registerChart('chart-disp-months','Yards by Month',chartDispMonths.config.type,chartDispMonths.config.data,chartDispMonths.config.options);
+
+  // --- Chart 2: Loads by Truck (horizontal bar) ---
+  var trucks = {};
+  rows.forEach(function(r){ var t=String(r['Truck']||'').trim()||'Unknown'; trucks[t]=(trucks[t]||0)+1; });
+  var topTrucks = Object.entries(trucks).sort(function(a,b){return b[1]-a[1];}).slice(0,15);
+  var ctx2 = document.getElementById('chart-disp-truck').getContext('2d');
+  if (chartDispTruck) chartDispTruck.destroy();
+  chartDispTruck = new Chart(ctx2, {
+    type:'bar',
+    data:{ labels: topTrucks.map(function(t){return t[0];}),
+      datasets:[{ label:'Loads', data: topTrucks.map(function(t){return t[1];}), backgroundColor:'#f97316', borderRadius:4 }]},
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins: CHART_DEFAULTS.plugins,
+      scales:{ x:{ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,.05)'}}, y:{ticks:{color:'#94a3b8'},grid:{display:false}} } }
+  });
+  registerChart('chart-disp-truck','Loads by Truck',chartDispTruck.config.type,chartDispTruck.config.data,chartDispTruck.config.options);
+
+  // --- Chart 3: Yards by Dept (doughnut) ---
+  var depts = {};
+  rows.forEach(function(r){ var d=r['Department']||'Other'; depts[d]=(depts[d]||0)+(parseFloat(r['Yards'])||0); });
+  var dKeys = Object.keys(depts); var COLORS=['#3b82f6','#22c55e','#f97316','#a855f7','#06b6d4'];
+  var ctx3 = document.getElementById('chart-disp-dept').getContext('2d');
+  if (chartDispDeptNew) chartDispDeptNew.destroy();
+  chartDispDeptNew = new Chart(ctx3, {
+    type:'doughnut',
+    data:{ labels: dKeys, datasets:[{ data: dKeys.map(function(k){return Math.round(depts[k]);}), backgroundColor: COLORS.slice(0,dKeys.length), borderWidth:0 }]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins: CHART_DEFAULTS.plugins }
+  });
+  registerChart('chart-disp-dept','Yards by Dept',chartDispDeptNew.config.type,chartDispDeptNew.config.data,chartDispDeptNew.config.options);
+
+  // --- Chart 4: Monthly Organically Cost ---
+  var orgByMonth = {};
+  orgRows.forEach(function(r){
+    var d = r['Date']||r['Invoice Date']||'';
+    var m = null;
+    if (d.indexOf('/')>-1) { var p=d.split('/'); if(p.length>=3) m=p[2].substring(0,4)+'-'+p[0].padStart(2,'0'); }
+    else if (d.length>=7) m=d.substring(0,7);
+    if (!m) return;
+    orgByMonth[m] = (orgByMonth[m]||0) + (parseFloat(r['Amount'])||0);
+  });
+  var omKeys = Object.keys(orgByMonth).sort().slice(-12);
+  var ctx4 = document.getElementById('chart-disp-org-cost').getContext('2d');
+  if (chartDispOrgCost) chartDispOrgCost.destroy();
+  chartDispOrgCost = new Chart(ctx4, {
+    type:'bar',
+    data:{ labels: omKeys,
+      datasets:[{ label:'$ Organically', data: omKeys.map(function(k){return orgByMonth[k];}), backgroundColor:'#a855f7', borderRadius:4 }]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins: CHART_DEFAULTS.plugins,
+      scales:{ x:{ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,.05)'}}, y:{ticks:{color:'#94a3b8',callback:function(v){return '$'+v.toLocaleString();}},grid:{color:'rgba(255,255,255,.05)'}} } }
+  });
+  registerChart('chart-disp-org-cost','Monthly Organically Cost',chartDispOrgCost.config.type,chartDispOrgCost.config.data,chartDispOrgCost.config.options);
+
+  // --- Epic HQ ---
+  var hqRows = rows.filter(function(r){ return (r['Client']||'').toUpperCase().includes('EPIC'); });
+  var hqYards = 0; hqRows.forEach(function(r){ hqYards += parseFloat(r['Yards'])||0; });
+  var hqCost = costPerYard > 0 ? (hqYards * parseFloat(costPerYard)) : 0;
+  document.getElementById('hq-loads').textContent = hqRows.length;
+  document.getElementById('hq-yards').textContent = Math.round(hqYards);
+  document.getElementById('hq-cost').textContent = hqCost > 0 ? fmtD(hqCost) : '—';
+  var hqHtml = hqRows.slice(0,50).map(function(r){
+    return '<tr><td>'+esc(r['Date'])+'</td><td>'+esc(r['Receipt #'])+'</td><td>'+esc(r['Yards'])+'</td><td>'+esc(r['Truck'])+'</td><td>'+esc(r['Employee'])+'</td><td>'+esc(r['Type']||r['Group']||'—')+'</td></tr>';
+  }).join('');
+  document.getElementById('hq-body').innerHTML = hqHtml || '<tr><td colspan="6" style="color:var(--muted);text-align:center;padding:20px">No Epic HQ receipts found</td></tr>';
+
+  // Update table
+  disposalFiltered = rows;
+  renderDisposalTable();
 }
 
 function renderDisposalTable() {
