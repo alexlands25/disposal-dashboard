@@ -769,18 +769,6 @@ function filterDisposal(val) {
 
 function renderDisposalPage() {
   renderDisposalAnalytics();
-  // Dept chart
-  var depts = Object.keys(byDept);
-  var COLORS=['#22c55e','#3b82f6','#f97316','#a855f7','#06b6d4','#84cc16'];
-  var ctx = document.getElementById('chart-disp-dept').getContext('2d');
-  if (chartDispDept) chartDispDept.destroy();
-  chartDispDept = new Chart(ctx, {
-    type: 'bar',
-    data: { labels: depts, datasets:[{ label:'Receipts', data: depts.map(function(d){return byDept[d];}), backgroundColor: COLORS, borderRadius:6 }] },
-    options: { responsive:true, maintainAspectRatio:false, plugins: CHART_DEFAULTS.plugins,
-      scales:{ x:{ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,.05)'}}, y:{ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,.05)'}} } }
-  });
-  registerChart('chart-disp-dept', 'Receipts by Department', chartDispDept.config.type, chartDispDept.config.data, chartDispDept.config.options);
 }
 
 function setDispYear(yr, el) {
