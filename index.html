@@ -668,8 +668,15 @@ function dispDateCutoff() {
 
 function renderDisposalCharts() {
   var cutoff = dispDateCutoff();
+  var now = new Date();
+  var dispCeiling = dispPeriod === 'today'
+    ? new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
+    : null;
   var rows = disposalRows.filter(function(r){
-    var d = new Date(r['Date']); return !isNaN(d) && d >= cutoff;
+    var d = new Date(r['Date']);
+    if (isNaN(d) || d < cutoff) return false;
+    if (dispCeiling && d >= dispCeiling) return false; // block future dates
+    return true;
   });
 
   var isToday = (dispPeriod === 'today');
@@ -678,9 +685,11 @@ function renderDisposalCharts() {
   if (isToday) {
     // Hourly
     titleText = 'Receipts — Hourly (Today)'; chartType = 'bar';
+    var todayStr2 = new Date().toDateString();
     var byHour = {};
     rows.forEach(function(r) {
-      var d = new Date(r['Date']); if (!isNaN(d) && d.getFullYear() > 2000) {
+      var d = new Date(r['Date']);
+      if (!isNaN(d) && d.getFullYear() > 2000 && d.toDateString() === todayStr2) {
         var h = d.getHours();
         byHour[h] = (byHour[h] || 0) + 1;
       }
@@ -1178,9 +1187,15 @@ function getDayCutoff(days) {
 function applyFilters() {
   var cutoff = getDayCutoff(currentDays);
   var search = document.getElementById('search-box').value.toLowerCase();
+  var now = new Date();
+  // For 'today': also cap at end of today so future-dated rows don't leak in
+  var todayCeiling = currentDays === 'today'
+    ? new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
+    : null;
 
   filteredRows = allRows.filter(function(r) {
     if (r._date < cutoff) return false;
+    if (todayCeiling && r._date >= todayCeiling) return false; // block future dates
     if (currentDept !== 'All' && r['Department'] !== currentDept) return false;
     if (search) {
       var haystack = [r['Store'], r['Department'], r['Employee'], r['Items'], r['Receipt#']].join(' ').toLowerCase();
@@ -1266,9 +1281,11 @@ function renderLineChart() {
     datasetLabel = 'Spend by Hour ($)';
     bgColor     = 'rgba(34,197,94,.75)';
 
+    var todayStr = new Date().toDateString();
     var byHour = {};
     filteredRows.forEach(function(r) {
-      if (r._date && r._date.getFullYear() > 2000) {
+      // Only include rows that are actually TODAY (guard against future-dated receipts)
+      if (r._date && r._date.getFullYear() > 2000 && r._date.toDateString() === todayStr) {
         var h = r._date.getHours();
         byHour[h] = (byHour[h] || 0) + r._amount;
       }
