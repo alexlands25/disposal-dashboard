@@ -359,6 +359,7 @@
     <button class="page-tab active" onclick="showPage('receipts',this)" id="tab-receipts">🧾 Receipts</button>
     <button class="page-tab" onclick="showPage('fuel',this)" id="tab-fuel">⛽ Fuel</button>
     <button class="page-tab" onclick="showPage('disposal',this)" id="tab-disposal">🗑️ EPIC DUMPS</button>
+    <button class="page-tab" onclick="showPage('corrections',this)" id="tab-corrections">✏️ Corrections</button>
   </nav>
 
   <div class="status-pill">
@@ -670,6 +671,44 @@
 
 </div><!-- /disposal-page -->
 
+<!-- Corrections Log Page -->
+<div id="corrections-page" style="display:none">
+  <div class="cards" style="margin-bottom:20px">
+    <div class="card">
+      <div class="card-label">Total Corrections</div>
+      <div class="card-value blue" id="corr-total">0</div>
+      <div class="card-sub">this session</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Dept Fixes</div>
+      <div class="card-value orange" id="corr-dept">0</div>
+      <div class="card-sub">department errors</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Status Fixes</div>
+      <div class="card-value purple" id="corr-status">0</div>
+      <div class="card-sub">status changes</div>
+    </div>
+  </div>
+  <div class="table-section">
+    <div class="table-header">
+      <h2>✏️ Corrections Log</h2>
+      <span style="font-size:12px;color:var(--muted)">Manual edits made to AI-captured data</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Time</th><th>Field</th><th>Store</th><th>Date</th><th>From</th><th>To</th>
+        </tr></thead>
+        <tbody id="corr-body">
+          <tr><td colspan="6"><div class="empty-msg">No corrections yet this session.</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="table-footer" id="corr-footer">0 corrections</div>
+  </div>
+</div><!-- /corrections-page -->
+
 
 <!-- Chart Expand Modal -->
 <div class="chart-overlay" id="chart-overlay" onclick="closeChartModal(event)">
@@ -713,8 +752,11 @@ var SHEET_ID = '1uvwHpRUYOVki3EG9WGbtX4Em8vM1EPw6nM0DCEOTykc';
 var SHEET_TAB = 'Epic Receipt Log';
 var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxlQ9_5ww_Dq-675HCvORrXvbOYmztDs8pO8ZMm0FrlcMsTjbzLHnVY22a1oBYRb8kxYA/exec';
 var STATUS_COL = 12; // Column L in sheet (1-based)
+var DEPT_COL   = 2;  // Column B in sheet (1-based)
+var CORRECTIONS_LOG_TAB = 'Corrections Log';
 var amtMin = 0;
 var amtMax = Infinity;
+var correctionLog = []; // in-memory log for current session
 
 var fuelInvoiceRows = [];
 var fuelInvoiceFiltered = [];
@@ -745,10 +787,12 @@ function showPage(page, el) {
 
   var fuelPage = document.getElementById('fuel-page');
   var dispPage = document.getElementById('disposal-page');
+  var corrPage = document.getElementById('corrections-page');
 
   receiptSections.forEach(function(s){ s.style.display = 'none'; });
   fuelPage.style.display = 'none';
   dispPage.style.display = 'none';
+  if (corrPage) corrPage.style.display = 'none';
 
   if (page === 'fuel') {
     fuelPage.style.display = 'block';
@@ -757,6 +801,8 @@ function showPage(page, el) {
     dispPage.style.display = 'block';
     if (!disposalRows.length) loadDisposalData();
     if (!organicallyRows.length) loadOrganicallyData();
+  } else if (page === 'corrections') {
+    if (corrPage) { corrPage.style.display = 'block'; renderCorrectionsPage(); }
   } else {
     receiptSections.forEach(function(s){ s.style.display = ''; });
   }
@@ -1573,7 +1619,15 @@ function renderTable() {
       }).join('') +
       '</select>';
     var deptColor = DEPT_COLORS[r['Department']] || '#64748b';
-    var deptChip  = '<span class="dept-chip" style="background:' + deptColor + '22;color:' + deptColor + '">' + dept + '</span>';
+    var deptOptions = Object.keys(DEPT_COLORS).filter(function(d){ return d !== 'Unknown'; });
+    var deptChip = '<select class="dept-select" data-sheet-row="' + sheetRow + '" data-original="' + dept + '" '
+      + 'onchange="updateDept(this)" '
+      + 'style="background:' + deptColor + '22;color:' + deptColor + ';border:1px solid ' + deptColor + '44;'
+      + 'border-radius:20px;padding:2px 8px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;">'
+      + deptOptions.map(function(d){
+          return '<option value="'+d+'"'+(d===dept?' selected':'')+'>'+d+'</option>';
+        }).join('')
+      + '</select>';
     var dateStr   = r._date && r._date.getFullYear() > 2000
       ? r._date.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'2-digit'})
       : esc(r['Date'] || '');
@@ -1606,6 +1660,99 @@ function esc(str) {
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// ─── Dept Inline Edit ─────────────────────────────────────────────────────────
+function updateDept(selectEl) {
+  var newDept    = selectEl.value;
+  var oldDept    = selectEl.getAttribute('data-original');
+  var sheetRow   = parseInt(selectEl.getAttribute('data-sheet-row'), 10);
+  if (newDept === oldDept) return;
+
+  // Update color optimistically
+  var c = DEPT_COLORS[newDept] || '#64748b';
+  selectEl.style.background = c + '22';
+  selectEl.style.color = c;
+  selectEl.style.borderColor = c + '44';
+  selectEl.setAttribute('data-original', newDept);
+
+  // Update allRows in memory
+  allRows.forEach(function(r) { if (r._rowIndex + 2 === sheetRow) r['Department'] = newDept; });
+
+  // Log the correction
+  var storeLabel = '';
+  var dateLabel  = '';
+  allRows.forEach(function(r) {
+    if (r._rowIndex + 2 === sheetRow) {
+      storeLabel = r['Store'] || '';
+      dateLabel  = r['Date']  || '';
+    }
+  });
+  logCorrection('Department', storeLabel, dateLabel, oldDept, newDept, sheetRow);
+
+  // Push to sheet
+  fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ action: 'updateCell', sheetId: SHEET_ID, row: sheetRow, col: DEPT_COL, value: newDept })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(resp){ if (!resp.success) alert('Dept update failed: ' + (resp.error||'?')); })
+  .catch(function(err){ alert('Could not reach Apps Script: ' + err); });
+}
+
+// ─── Correction Logger ──────────────────────────────────────────────────────
+function logCorrection(field, store, date, oldVal, newVal, sheetRow) {
+  var entry = {
+    time:  new Date().toLocaleTimeString(),
+    field: field,
+    store: store,
+    date:  date,
+    from:  oldVal,
+    to:    newVal,
+    row:   sheetRow
+  };
+  correctionLog.unshift(entry); // newest first
+
+  // Also append to Google Sheet "Corrections Log" tab
+  var ts = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
+  fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({
+      action: 'appendRow',
+      sheetId: SHEET_ID,
+      sheetName: CORRECTIONS_LOG_TAB,
+      row: [ts, field, store, date, oldVal, newVal]
+    })
+  }).catch(function(){}) // best-effort, don't block UI
+}
+
+function renderCorrectionsPage() {
+  var total  = correctionLog.length;
+  var depts  = correctionLog.filter(function(e){ return e.field === 'Department'; }).length;
+  var stats  = correctionLog.filter(function(e){ return e.field === 'Status'; }).length;
+
+  document.getElementById('corr-total').textContent  = total;
+  document.getElementById('corr-dept').textContent   = depts;
+  document.getElementById('corr-status').textContent = stats;
+  document.getElementById('corr-footer').textContent = total + ' correction' + (total !== 1 ? 's' : '');
+
+  var tbody = document.getElementById('corr-body');
+  if (!total) {
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty-msg">No corrections yet this session.</div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = correctionLog.map(function(e) {
+    return '<tr>'
+      + '<td style="color:var(--muted);font-size:12px">' + esc(e.time) + '</td>'
+      + '<td><span style="background:#3b82f622;color:#3b82f6;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700">' + esc(e.field) + '</span></td>'
+      + '<td><strong>' + esc(e.store) + '</strong></td>'
+      + '<td style="color:var(--muted);font-size:12px">' + esc(e.date) + '</td>'
+      + '<td style="color:#ef4444">' + esc(e.from) + '</td>'
+      + '<td style="color:#22c55e">' + esc(e.to) + '</td>'
+      + '</tr>';
+  }).join('');
+}
+
 // ─── Status Inline Edit ───────────────────────────────────────────────────────
 function updateStatus(selectEl) {
   var newStatus = selectEl.value;
@@ -1616,9 +1763,17 @@ function updateStatus(selectEl) {
     (newStatus === 'Approved' ? 'badge-green' : newStatus === 'Pending Review' ? 'badge-orange' : 'badge-muted');
 
   // Also update the in-memory allRows so filter re-renders are consistent
+  var oldStatus = '';
+  var storeLabel = '', dateLabel = '';
   allRows.forEach(function(r) {
-    if (r._rowIndex + 2 === sheetRow) r['Status'] = newStatus;
+    if (r._rowIndex + 2 === sheetRow) {
+      oldStatus  = r['Status'] || '';
+      storeLabel = r['Store']  || '';
+      dateLabel  = r['Date']   || '';
+      r['Status'] = newStatus;
+    }
   });
+  if (oldStatus !== newStatus) logCorrection('Status', storeLabel, dateLabel, oldStatus, newStatus, sheetRow);
 
   // POST to Apps Script
   fetch(APPS_SCRIPT_URL, {
