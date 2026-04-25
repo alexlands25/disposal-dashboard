@@ -96,6 +96,17 @@
     .fuel-status-bad  { color: #ef4444; font-weight:600; }
     .fuel-cards { display:grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap:16px; margin-bottom:24px; }
 
+    .status-select {
+      appearance: none;
+      -webkit-appearance: none;
+      cursor: pointer;
+      outline: none;
+      min-width: 90px;
+      text-align: center;
+    }
+    .status-select:hover { opacity: 0.85; }
+    .status-select option { background: #1e293b; color: #f1f5f9; font-weight: 500; }
+
     .status-pill {
       display: flex; align-items: center; gap: 6px;
       padding: 6px 14px;
@@ -372,6 +383,17 @@
       <div class="chip"        data-days="30"  onclick="setDays(30,this)">Last 30d</div>
       <div class="chip"        data-days="mtd" onclick="setDays('mtd',this)">This Month</div>
       <div class="chip"        data-days="ytd" onclick="setDays('ytd',this)">This Year</div>
+    </div>
+    <!-- Amount range filter -->
+    <div class="filter-group" style="align-items:center;gap:6px">
+      <span style="color:var(--muted);font-size:12px;white-space:nowrap">Amount:</span>
+      <input type="number" id="amt-min" placeholder="Min $" min="0" step="1"
+        style="width:90px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:13px;font-family:inherit"
+        oninput="setAmtFilter()" />
+      <span style="color:var(--muted);font-size:12px">–</span>
+      <input type="number" id="amt-max" placeholder="Max $" min="0" step="1"
+        style="width:90px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:13px;font-family:inherit"
+        oninput="setAmtFilter()" />
     </div>
     <div class="filter-group" id="dept-chips">
       <div class="chip active" data-dept="All" onclick="setDept('All',this)">All Depts</div>
@@ -690,6 +712,10 @@ var chartLine, chartDonut, chartBar;
 // ─── Config — hardcoded Sheet ID ─────────────────────────────────────────────
 var SHEET_ID = '1uvwHpRUYOVki3EG9WGbtX4Em8vM1EPw6nM0DCEOTykc';
 var SHEET_TAB = 'Epic Receipt Log';
+var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxlQ9_5ww_Dq-675HCvORrXvbOYmztDs8pO8ZMm0FrlcMsTjbzLHnVY22a1oBYRb8kxYA/exec';
+var STATUS_COL = 12; // Column L in sheet (1-based)
+var amtMin = 0;
+var amtMax = Infinity;
 
 var fuelInvoiceRows = [];
 var fuelInvoiceFiltered = [];
@@ -1245,7 +1271,7 @@ function loadData() {
         });
         return obj;
       }).filter(function(r) { return r['Date'] || r['Store'] || r['Amount']; });
-      allRows = rows.map(normalizeRow);
+      allRows = rows.map(function(r, i) { return normalizeRow(r, i); });
       document.getElementById('last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString();
       applyFilters();
     })
@@ -1254,13 +1280,14 @@ function loadData() {
     });
 }
 
-function normalizeRow(r) {
+function normalizeRow(r, i) {
   // Ensure Amount is a number
   var amt = parseFloat(String(r['Amount'] || '').replace(/[$,]/g, '')) || 0;
   var d = new Date(r['Date']);
   return Object.assign({}, r, {
     _amount: amt,
-    _date: isNaN(d) ? new Date(0) : d
+    _date: isNaN(d) ? new Date(0) : d,
+    _rowIndex: i  // 0-based gviz index; sheet row = _rowIndex + 2 (header offset)
   });
 }
 
@@ -1281,6 +1308,14 @@ function getDayCutoff(days) {
   return d;
 }
 
+function setAmtFilter() {
+  var minVal = parseFloat(document.getElementById('amt-min').value);
+  var maxVal = parseFloat(document.getElementById('amt-max').value);
+  amtMin = isNaN(minVal) ? 0 : minVal;
+  amtMax = isNaN(maxVal) ? Infinity : maxVal;
+  applyFilters();
+}
+
 function applyFilters() {
   var cutoff = getDayCutoff(currentDays);
   var search = document.getElementById('search-box').value.toLowerCase();
@@ -1289,6 +1324,8 @@ function applyFilters() {
   filteredRows = allRows.filter(function(r) {
     if (r._date < cutoff) return false;
     if (currentDept !== 'All' && r['Department'] !== currentDept) return false;
+    if (r._amount < amtMin) return false;
+    if (r._amount > amtMax) return false;
     if (search) {
       var haystack = [r['Store'], r['Department'], r['Employee'], r['Items'], r['Receipt#'], r['Job/Cliente']].join(' ').toLowerCase();
       if (!haystack.includes(search)) return false;
@@ -1531,6 +1568,15 @@ function renderTable() {
     var photo    = r['Photo Link'] ? '<a href="' + esc(r['Photo Link']) + '" target="_blank">📷</a>' : '—';
     var status   = r['Status'] || 'Pending';
     var statusClass = status === 'Approved' ? 'badge-green' : status === 'Pending Review' ? 'badge-orange' : 'badge-muted';
+    var sheetRow = r._rowIndex + 2; // gviz is 0-based, sheet has header on row 1
+    var statusCell = '<select class="status-select badge ' + statusClass + '" ' +
+      'data-sheet-row="' + sheetRow + '" ' +
+      'onchange="updateStatus(this)" ' +
+      'style="cursor:pointer;border:none;background:transparent;font-size:11px;font-weight:600;font-family:inherit;padding:2px 4px;border-radius:6px">' +
+      ['Approved','Pending Review','Needs Attention','Needs Review','Duplicate'].map(function(s) {
+        return '<option value="' + s + '"' + (s === status ? ' selected' : '') + '>' + s + '</option>';
+      }).join('') +
+      '</select>';
     var deptColor = DEPT_COLORS[r['Department']] || '#64748b';
     var deptChip  = '<span class="dept-chip" style="background:' + deptColor + '22;color:' + deptColor + '">' + dept + '</span>';
     var dateStr   = r._date && r._date.getFullYear() > 2000
@@ -1551,7 +1597,7 @@ function renderTable() {
       '<td>' + pay + '</td>' +
       '<td>' + rnum + '</td>' +
       '<td style="text-align:center">' + photo + '</td>' +
-      '<td><span class="badge ' + statusClass + '">' + esc(status) + '</span></td>' +
+      '<td>' + statusCell + '</td>' +
       '</tr>';
   }).join('');
 
@@ -1563,6 +1609,45 @@ function esc(str) {
   return String(str)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;')
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─── Status Inline Edit ───────────────────────────────────────────────────────
+function updateStatus(selectEl) {
+  var newStatus = selectEl.value;
+  var sheetRow  = parseInt(selectEl.getAttribute('data-sheet-row'), 10);
+
+  // Optimistic UI: update color immediately
+  selectEl.className = 'status-select badge ' +
+    (newStatus === 'Approved' ? 'badge-green' : newStatus === 'Pending Review' ? 'badge-orange' : 'badge-muted');
+
+  // Also update the in-memory allRows so filter re-renders are consistent
+  allRows.forEach(function(r) {
+    if (r._rowIndex + 2 === sheetRow) r['Status'] = newStatus;
+  });
+
+  // POST to Apps Script
+  fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({
+      action: 'updateCell',
+      sheetId: SHEET_ID,
+      row: sheetRow,
+      col: STATUS_COL,
+      value: newStatus
+    })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(resp) {
+    if (!resp.success) {
+      console.warn('Status update failed:', resp.error);
+      alert('Could not save status: ' + (resp.error || 'unknown error'));
+    }
+  })
+  .catch(function(err) {
+    console.warn('Status update error:', err);
+    alert('Could not reach Apps Script: ' + err);
+  });
 }
 
 // ─── Loading / Error States ───────────────────────────────────────────────────
