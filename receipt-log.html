@@ -454,7 +454,7 @@
   <div class="table-section">
     <div class="table-header">
       <h2>All Receipts</h2>
-      <input class="search-input" type="text" placeholder="Search store, dept, employee…" oninput="filterTable(this.value)" id="search-box" />
+      <input class="search-input" type="text" placeholder="Search store, dept, employee, amount ($150.00)…" oninput="filterTable(this.value)" id="search-box" />
       <input class="search-input" type="text" placeholder="Filter by Customer / Job…" oninput="filterTable(this.value)" id="customer-box" style="margin-top:6px" />
     </div>
     <div class="table-wrap">
@@ -1327,7 +1327,8 @@ function applyFilters() {
     if (r._amount < amtMin) return false;
     if (r._amount > amtMax) return false;
     if (search) {
-      var haystack = [r['Store'], r['Department'], r['Employee'], r['Items'], r['Receipt#'], r['Job/Cliente']].join(' ').toLowerCase();
+      var amtStr = r._amount > 0 ? String(r._amount.toFixed(2)) : '';
+      var haystack = [r['Store'], r['Department'], r['Employee'], r['Items'], r['Receipt#'], r['Job/Cliente'], amtStr].join(' ').toLowerCase();
       if (!haystack.includes(search)) return false;
     }
     if (customer) {
