@@ -365,12 +365,14 @@
   </div>
 
   <!-- Filters -->
+  <div id="receipts-page">
   <div class="filter-row">
     <div class="filter-group" id="time-chips">
-      <div class="chip active" data-days="7"   onclick="setDays(7,this)">Last 7d</div>
-      <div class="chip"        data-days="30"  onclick="setDays(30,this)">Last 30d</div>
-      <div class="chip"        data-days="mtd" onclick="setDays('mtd',this)">This Month</div>
-      <div class="chip"        data-days="ytd" onclick="setDays('ytd',this)">This Year</div>
+      <div class="chip"        data-days="today" onclick="setDays('today',this)">Today</div>
+      <div class="chip active" data-days="7"     onclick="setDays(7,this)">Last 7d</div>
+      <div class="chip"        data-days="30"    onclick="setDays(30,this)">Last 30d</div>
+      <div class="chip"        data-days="mtd"   onclick="setDays('mtd',this)">This Month</div>
+      <div class="chip"        data-days="ytd"   onclick="setDays('ytd',this)">This Year</div>
     </div>
     <div class="filter-group" id="dept-chips">
       <div class="chip active" data-dept="All" onclick="setDept('All',this)">All Depts</div>
@@ -460,6 +462,7 @@
     </div>
     <div class="table-footer" id="table-footer">— rows</div>
   </div>
+  </div><!-- /receipts-page -->
 
 <!-- ⛽ FUEL PAGE ────────────────────────────────── -->
 <div id="fuel-page">
@@ -556,8 +559,22 @@
     <div class="card"><div class="card-label">Basura Rastra</div><div class="card-value purple" id="disp-rastra">—</div><div class="card-sub">receipts</div></div>
   </div>
 
+  <!-- Disposal time filter chips -->
+  <div class="filter-row" style="margin-bottom:20px">
+    <div class="filter-group" id="disp-time-chips">
+      <div class="chip" data-dperiod="today" onclick="setDispPeriod('today',this)">Today</div>
+      <div class="chip active" data-dperiod="7" onclick="setDispPeriod(7,this)">Last 7d</div>
+      <div class="chip" data-dperiod="30" onclick="setDispPeriod(30,this)">Last 30d</div>
+      <div class="chip" data-dperiod="all" onclick="setDispPeriod('all',this)">All Time</div>
+    </div>
+  </div>
+
   <div class="charts" style="margin-bottom:24px">
     <div class="chart-card wide">
+      <div class="chart-title" id="disp-time-title">Receipts Over Time</div>
+      <div class="chart-wrap"><canvas id="chart-disp-time"></canvas></div>
+    </div>
+    <div class="chart-card">
       <div class="chart-title">Receipts by Department</div>
       <div class="chart-wrap"><canvas id="chart-disp-dept"></canvas></div>
     </div>
@@ -632,6 +649,86 @@ var chartFuelBar, chartFuelDept;
 var disposalRows = [];
 var disposalFiltered = [];
 var chartDispDept;
+var chartDispTime;
+var dispPeriod = 7;
+
+function setDispPeriod(p, el) {
+  dispPeriod = p;
+  document.querySelectorAll('#disp-time-chips .chip').forEach(function(c){ c.classList.remove('active'); });
+  el.classList.add('active');
+  renderDisposalCharts();
+}
+
+function dispDateCutoff() {
+  var now = new Date();
+  if (dispPeriod === 'today') return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (dispPeriod === 'all')   return new Date(2020, 0, 1);
+  var d = new Date(now); d.setDate(d.getDate() - parseInt(dispPeriod)); return d;
+}
+
+function renderDisposalCharts() {
+  var cutoff = dispDateCutoff();
+  var rows = disposalRows.filter(function(r){
+    var d = new Date(r['Date']); return !isNaN(d) && d >= cutoff;
+  });
+
+  var isToday = (dispPeriod === 'today');
+  var labels, values, chartType, titleText;
+
+  if (isToday) {
+    // Hourly
+    titleText = 'Receipts — Hourly (Today)'; chartType = 'bar';
+    var byHour = {};
+    rows.forEach(function(r) {
+      var d = new Date(r['Date']); if (!isNaN(d) && d.getFullYear() > 2000) {
+        var h = d.getHours();
+        byHour[h] = (byHour[h] || 0) + 1;
+      }
+    });
+    var now = new Date();
+    var endH = Math.min(Math.max(now.getHours() + 1, 7), 22);
+    labels = []; values = [];
+    for (var h = 6; h <= endH; h++) {
+      labels.push(h === 12 ? '12 PM' : h > 12 ? (h-12)+' PM' : h+' AM');
+      values.push(byHour[h] || 0);
+    }
+  } else {
+    // Daily
+    titleText = 'Receipts Over Time'; chartType = 'bar';
+    var byDate = {};
+    rows.forEach(function(r) {
+      var d = new Date(r['Date']); if (!isNaN(d)) {
+        var key = d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+        byDate[key] = (byDate[key]||0) + 1;
+      }
+    });
+    var sorted = rows
+      .filter(function(r){ return !isNaN(new Date(r['Date'])); })
+      .map(function(r){ var d = new Date(r['Date']); return { key: d.toLocaleDateString('en-US',{month:'short',day:'numeric'}), d: d }; })
+      .sort(function(a,b){ return a.d-b.d; });
+    var uniq = []; var seen = {};
+    sorted.forEach(function(x){ if(!seen[x.key]){ seen[x.key]=true; uniq.push(x.key); } });
+    labels = uniq;
+    values = uniq.map(function(k){ return byDate[k]||0; });
+  }
+
+  var titleEl = document.getElementById('disp-time-title');
+  if (titleEl) titleEl.textContent = titleText;
+
+  var ctx = document.getElementById('chart-disp-time').getContext('2d');
+  if (chartDispTime) chartDispTime.destroy();
+  chartDispTime = new Chart(ctx, {
+    type: chartType,
+    data: { labels: labels, datasets:[{ label:'Receipts', data:values, backgroundColor:'rgba(34,197,94,.75)', borderColor:'#22c55e', borderRadius:5 }] },
+    options: { responsive:true, maintainAspectRatio:false, plugins: CHART_DEFAULTS.plugins,
+      scales:{ x:{ticks:{color:'#94a3b8',maxRotation: isToday?0:45},grid:{color:'rgba(255,255,255,.05)'}},
+               y:{ticks:{color:'#94a3b8',stepSize:1},grid:{color:'rgba(255,255,255,.05)'},beginAtZero:true} } }
+  });
+  registerChart('chart-disp-time', titleText, chartDispTime.config.type, chartDispTime.config.data, chartDispTime.config.options);
+
+  // Dept chart (using all rows, not filtered by period)
+  renderDisposalDeptChart();
+}
 
 function showPage(page, el) {
   document.querySelectorAll('.page-tab').forEach(function(t){ t.classList.remove('active'); });
@@ -706,16 +803,24 @@ function renderDisposalPage() {
   document.getElementById('disp-tree').textContent = (byDept['Tree Trimming']||0).toLocaleString();
   document.getElementById('disp-rastra').textContent = (byDept['Basura Rastra']||0).toLocaleString();
   renderDisposalTable();
-  // Dept chart
+  renderDisposalDeptChart();
+  renderDisposalCharts();
+}
+
+function renderDisposalDeptChart() {
+  var byDept = {};
+  disposalRows.forEach(function(r){
+    var d = r['Department']||'Unknown';
+    byDept[d] = (byDept[d]||0) + 1;
+  });
   var depts = Object.keys(byDept);
   var COLORS=['#22c55e','#3b82f6','#f97316','#a855f7','#06b6d4','#84cc16'];
   var ctx = document.getElementById('chart-disp-dept').getContext('2d');
   if (chartDispDept) chartDispDept.destroy();
   chartDispDept = new Chart(ctx, {
-    type: 'bar',
-    data: { labels: depts, datasets:[{ label:'Receipts', data: depts.map(function(d){return byDept[d];}), backgroundColor: COLORS, borderRadius:6 }] },
-    options: { responsive:true, maintainAspectRatio:false, plugins: CHART_DEFAULTS.plugins,
-      scales:{ x:{ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,.05)'}}, y:{ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,.05)'}} } }
+    type: 'doughnut',
+    data: { labels: depts, datasets:[{ data: depts.map(function(d){return byDept[d];}), backgroundColor: COLORS, borderColor:'#273449', borderWidth:2 }] },
+    options: { responsive:true, maintainAspectRatio:false, cutout:'60%', plugins: CHART_DEFAULTS.plugins }
   });
   registerChart('chart-disp-dept', 'Receipts by Department', chartDispDept.config.type, chartDispDept.config.data, chartDispDept.config.options);
 }
@@ -945,32 +1050,51 @@ function renderFuelInvoiceTable() {
 }
 
 function renderFuelBarChart(conRows, invRows) {
-  // Build monthly from filtered rows
+  // Smart granularity: short period → daily, long period → monthly
+  var isShort = (fuelPeriod === 7 || fuelPeriod === 30);
   var delivered={}, consumed={};
-  (invRows||fuelInvoiceRows).forEach(function(r){
-    var m = r['Month']||'';
-    delivered[m] = (delivered[m]||0) + (parseFloat(String(r['Gallons']).replace(/,/g,''))||0);
-  });
-  (conRows||fuelConsumptionRows).forEach(function(r){
-    var m = r['Month']||'';
-    consumed[m] = (consumed[m]||0) + (parseFloat(String(r['Gallons']).replace(/,/g,''))||0);
-  });
-  var months = Object.keys(Object.assign({}, delivered, consumed)).sort();
+
+  if (isShort) {
+    // Daily buckets
+    (invRows||fuelInvoiceRows).forEach(function(r){
+      var d = new Date(r['Date']); if (isNaN(d)) return;
+      var key = d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+      delivered[key] = (delivered[key]||0) + (parseFloat(String(r['Gallons']).replace(/,/g,''))||0);
+    });
+    (conRows||fuelConsumptionRows).forEach(function(r){
+      var d = new Date(r['Date']); if (isNaN(d)) return;
+      var key = d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+      consumed[key] = (consumed[key]||0) + (parseFloat(String(r['Gallons']).replace(/,/g,''))||0);
+    });
+  } else {
+    // Monthly buckets
+    (invRows||fuelInvoiceRows).forEach(function(r){
+      var m = r['Month']||'';
+      delivered[m] = (delivered[m]||0) + (parseFloat(String(r['Gallons']).replace(/,/g,''))||0);
+    });
+    (conRows||fuelConsumptionRows).forEach(function(r){
+      var m = r['Month']||'';
+      consumed[m] = (consumed[m]||0) + (parseFloat(String(r['Gallons']).replace(/,/g,''))||0);
+    });
+  }
+
+  var buckets = Object.keys(Object.assign({}, delivered, consumed)).sort();
+  var chartTitle = isShort ? 'Daily Delivered vs Consumed' : 'Monthly Delivered vs Consumed';
   var ctx = document.getElementById('chart-fuel-bar').getContext('2d');
   if (chartFuelBar) chartFuelBar.destroy();
   chartFuelBar = new Chart(ctx, {
     type: 'bar',
     data: {
-      labels: months,
+      labels: buckets,
       datasets: [
-        { label:'Delivered (gal)', data: months.map(function(m){return delivered[m]||0;}), backgroundColor:'#22c55e', borderRadius:4 },
-        { label:'Consumed (gal)', data: months.map(function(m){return consumed[m]||0;}), backgroundColor:'#3b82f6', borderRadius:4 }
+        { label:'Delivered (gal)', data: buckets.map(function(k){return delivered[k]||0;}), backgroundColor:'#22c55e', borderRadius:4 },
+        { label:'Consumed (gal)', data: buckets.map(function(k){return consumed[k]||0;}), backgroundColor:'#3b82f6', borderRadius:4 }
       ]
     },
     options: { responsive:true, maintainAspectRatio:false, plugins: CHART_DEFAULTS.plugins,
-      scales:{ x:{ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,.05)'}}, y:{ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,.05)'}} } }
+      scales:{ x:{ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,.05)'}}, y:{ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,.05)'},beginAtZero:true} } }
   });
-  registerChart('chart-fuel-bar', 'Monthly Delivered vs Consumed', chartFuelBar.config.type, chartFuelBar.config.data, chartFuelBar.config.options);
+  registerChart('chart-fuel-bar', chartTitle, chartFuelBar.config.type, chartFuelBar.config.data, chartFuelBar.config.options);
 }
 
 function renderFuelDeptChart(conRows) {
@@ -1037,6 +1161,9 @@ function normalizeRow(r) {
 // ─── Filtering ────────────────────────────────────────────────────────────────
 function getDayCutoff(days) {
   var now = new Date();
+  if (days === 'today') {
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  }
   if (days === 'mtd') {
     return new Date(now.getFullYear(), now.getMonth(), 1);
   }
@@ -1126,52 +1253,94 @@ function renderCharts() {
 }
 
 function renderLineChart() {
-  // Group by date
-  var byDate = {};
-  filteredRows.forEach(function(r) {
-    var key = r._date.toLocaleDateString('en-US', { month:'short', day:'numeric' });
-    byDate[key] = (byDate[key] || 0) + r._amount;
-  });
-
-  // Sort keys by actual date
-  var sorted = filteredRows
-    .map(function(r){ return { key: r._date.toLocaleDateString('en-US',{month:'short',day:'numeric'}), d: r._date }; })
-    .sort(function(a,b){ return a.d-b.d; });
-  var uniqueKeys = [];
-  var seen = {};
-  sorted.forEach(function(x){ if(!seen[x.key]){ seen[x.key]=true; uniqueKeys.push(x.key); } });
-
-  var labels = uniqueKeys;
-  var values = uniqueKeys.map(function(k){ return byDate[k] || 0; });
-
   var ctx = document.getElementById('chart-line').getContext('2d');
+  var isToday = (currentDays === 'today');
+  var isShortRange = (typeof currentDays === 'number' && currentDays <= 14) || currentDays === 'today';
+
+  var labels, values, chartType, datasetLabel, bgColor, titleText;
+
+  if (isToday) {
+    // ── HOURLY view (like a stock ticker) ──────────────────────────
+    titleText   = 'Spending — Hourly (Today)';
+    chartType   = 'bar';
+    datasetLabel = 'Spend by Hour ($)';
+    bgColor     = 'rgba(34,197,94,.75)';
+
+    var byHour = {};
+    filteredRows.forEach(function(r) {
+      if (r._date && r._date.getFullYear() > 2000) {
+        var h = r._date.getHours();
+        byHour[h] = (byHour[h] || 0) + r._amount;
+      }
+    });
+
+    var now = new Date();
+    var startH = 6;
+    var endH   = Math.min(Math.max(now.getHours() + 1, startH + 1), 22);
+    labels = []; values = [];
+    for (var h = startH; h <= endH; h++) {
+      labels.push(h === 12 ? '12 PM' : h > 12 ? (h-12)+' PM' : h+' AM');
+      values.push(byHour[h] || 0);
+    }
+  } else {
+    // ── DAILY view ─────────────────────────────────────────────────
+    titleText   = 'Spending Over Time';
+    chartType   = 'line';
+    datasetLabel = 'Daily Spend ($)';
+    bgColor     = 'rgba(34,197,94,.1)';
+
+    var byDate = {};
+    filteredRows.forEach(function(r) {
+      var key = r._date.toLocaleDateString('en-US', { month:'short', day:'numeric' });
+      byDate[key] = (byDate[key] || 0) + r._amount;
+    });
+    var sorted = filteredRows
+      .map(function(r){ return { key: r._date.toLocaleDateString('en-US',{month:'short',day:'numeric'}), d: r._date }; })
+      .sort(function(a,b){ return a.d-b.d; });
+    var uniqueKeys = []; var seen = {};
+    sorted.forEach(function(x){ if(!seen[x.key]){ seen[x.key]=true; uniqueKeys.push(x.key); } });
+    labels = uniqueKeys;
+    values = uniqueKeys.map(function(k){ return byDate[k] || 0; });
+  }
+
+  // Update chart title text in DOM
+  var titleEl = document.querySelector('#receipts-page .chart-card.wide .chart-title');
+  if (titleEl) titleEl.textContent = titleText;
+
   if (chartLine) chartLine.destroy();
   chartLine = new Chart(ctx, {
-    type: 'line',
+    type: chartType,
     data: {
       labels: labels,
       datasets: [{
-        label: 'Daily Spend ($)',
+        label: datasetLabel,
         data: values,
         borderColor: '#22c55e',
-        backgroundColor: 'rgba(34,197,94,.1)',
+        backgroundColor: bgColor,
         tension: .35,
-        fill: true,
-        pointRadius: 3,
-        pointBackgroundColor: '#22c55e'
+        fill: chartType === 'line',
+        pointRadius: chartType === 'line' ? 3 : 0,
+        pointBackgroundColor: '#22c55e',
+        borderRadius: chartType === 'bar' ? 6 : 0
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       scales: {
-        x: { ticks: { color:'#94a3b8', font:{family:'DM Sans'}, maxRotation:45 }, grid:{color:'rgba(255,255,255,.05)'} },
-        y: { ticks: { color:'#94a3b8', font:{family:'DM Sans'}, callback: function(v){ return '$'+v.toLocaleString(); }}, grid:{color:'rgba(255,255,255,.05)'} }
+        x: { ticks: { color:'#94a3b8', font:{family:'DM Sans'}, maxRotation: isToday ? 0 : 45 }, grid:{color:'rgba(255,255,255,.05)'} },
+        y: { ticks: { color:'#94a3b8', font:{family:'DM Sans'}, callback: function(v){ return '$'+v.toLocaleString(); }}, grid:{color:'rgba(255,255,255,.05)'}, beginAtZero: true }
       },
-      plugins: CHART_DEFAULTS.plugins
+      plugins: Object.assign({}, CHART_DEFAULTS.plugins, {
+        tooltip: {
+          callbacks: {
+            label: function(ctx) { return ' $' + fmt(ctx.parsed.y); }
+          }
+        }
+      })
     }
   });
-  registerChart('chart-line', 'Spending Over Time', chartLine.config.type, chartLine.config.data, chartLine.config.options);
+  registerChart('chart-line', titleText, chartLine.config.type, chartLine.config.data, chartLine.config.options);
 }
 
 function renderDonutChart() {
