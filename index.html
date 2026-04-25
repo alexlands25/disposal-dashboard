@@ -340,7 +340,7 @@
       <div class="logo">🧾</div>
       <div class="header-title">
         <h1>Epic Receipt Log</h1>
-        <p>Operational Expense Tracking — Epic Landscaping &nbsp;<span style="background:rgba(34,197,94,.15);color:#22c55e;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.04em">v2.5.0</span></p>
+        <p>Operational Expense Tracking — Epic Landscaping &nbsp;<span style="background:rgba(34,197,94,.15);color:#22c55e;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.04em">v2.6.0</span></p>
       </div>
     </div>
     <!-- Page Nav Tabs -->
@@ -470,10 +470,12 @@
   <!-- Period filters -->
   <div class="filter-row" style="margin-bottom:20px">
     <div class="filter-group" id="fuel-time-chips">
-      <div class="chip" data-fperiod="7"   onclick="setFuelPeriod(7,this)">Last 7d</div>
-      <div class="chip" data-fperiod="30"  onclick="setFuelPeriod(30,this)">Last 30d</div>
+      <div class="chip" data-fperiod="today" onclick="setFuelPeriod('today',this)">Today</div>
+      <div class="chip" data-fperiod="7"     onclick="setFuelPeriod(7,this)">Last 7d</div>
+      <div class="chip" data-fperiod="30"    onclick="setFuelPeriod(30,this)">Last 30d</div>
+      <div class="chip" data-fperiod="mtd"   onclick="setFuelPeriod('mtd',this)">This Month</div>
       <div class="chip active" data-fperiod="ytd" onclick="setFuelPeriod('ytd',this)">This Year</div>
-      <div class="chip" data-fperiod="all" onclick="setFuelPeriod('all',this)">All Time</div>
+      <div class="chip" data-fperiod="all"   onclick="setFuelPeriod('all',this)">All Time</div>
     </div>
   </div>
 
@@ -506,9 +508,15 @@
     </div>
   </div>
 
-  <!-- Monthly bar chart -->
+  <!-- Fuel Spending Over Time (wave chart) -->
+  <div class="card" style="padding:16px;margin-bottom:16px">
+    <div style="font-weight:600;font-size:13px;margin-bottom:12px" id="fuel-line-title">Fuel Spend Over Time</div>
+    <div class="chart-card" style="height:200px;position:relative;cursor:pointer"><canvas id="chart-fuel-line"></canvas></div>
+  </div>
+
+  <!-- Delivered vs Consumed bar chart -->
   <div class="card" style="padding:16px;margin-bottom:24px">
-    <div style="font-weight:600;font-size:13px;margin-bottom:12px">Monthly Delivered vs Consumed (gallons)</div>
+    <div style="font-weight:600;font-size:13px;margin-bottom:12px" id="fuel-bar-title">Monthly Delivered vs Consumed (gallons)</div>
     <div class="chart-card" style="height:220px;position:relative;cursor:pointer"><canvas id="chart-fuel-bar"></canvas></div>
   </div>
 
@@ -897,8 +905,10 @@ function setFuelPeriod(p, el) {
 
 function fuelDateCutoff() {
   var now = new Date();
-  if (fuelPeriod === 'ytd') return new Date(now.getFullYear(), 0, 1);
-  if (fuelPeriod === 'all') return new Date(2020, 0, 1);
+  if (fuelPeriod === 'today') return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (fuelPeriod === 'mtd')  return new Date(now.getFullYear(), now.getMonth(), 1);
+  if (fuelPeriod === 'ytd')  return new Date(now.getFullYear(), 0, 1);
+  if (fuelPeriod === 'all')  return new Date(2020, 0, 1);
   var d = new Date(now); d.setDate(d.getDate() - parseInt(fuelPeriod)); return d;
 }
 
@@ -1000,6 +1010,7 @@ function renderFuelPage() {
 
   // Charts — delay so DOM is visible
   setTimeout(function(){
+    renderFuelLineChart(invRows);
     renderFuelBarChart(conRows, invRows);
     renderFuelDeptChart(conRows);
   }, 80);
@@ -1058,9 +1069,75 @@ function renderFuelInvoiceTable() {
   document.getElementById('fuel-invoice-footer').textContent = fuelInvoiceFiltered.length + ' invoices';
 }
 
+var chartFuelLine;
+
+function renderFuelLineChart(invRows) {
+  // Wave chart: fuel spend over time with smart granularity
+  var isToday = (fuelPeriod === 'today');
+  var isShort = (fuelPeriod === 7 || fuelPeriod === 30 || fuelPeriod === 'mtd');
+  var rows = invRows || fuelInvoiceRows;
+  var labels, values, titleText, chartType, bgColor;
+
+  if (isToday) {
+    // 7-day wave ending today
+    titleText = 'Fuel Spend — Last 7 Days'; chartType = 'line'; bgColor = 'rgba(168,85,247,.15)';
+    var sevenAgo = new Date(); sevenAgo.setDate(sevenAgo.getDate()-6);
+    sevenAgo = new Date(sevenAgo.getFullYear(), sevenAgo.getMonth(), sevenAgo.getDate());
+    var byD = {};
+    rows.forEach(function(r){
+      var d = parseLocalDate(r['Date']); if(isNaN(d)||d<sevenAgo) return;
+      var k = d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+      byD[k]=(byD[k]||0)+(parseFloat(String(r['Amount ($)']).replace(/[$,]/g,''))||0);
+    });
+    labels=[]; values=[];
+    for(var i=6;i>=0;i--){ var d=new Date(); d.setDate(d.getDate()-i);
+      var k=d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+      labels.push(k); values.push(byD[k]||0); }
+  } else if (isShort) {
+    // Daily buckets
+    titleText = 'Fuel Spend — Daily'; chartType = 'line'; bgColor = 'rgba(168,85,247,.15)';
+    var byD2 = {}; var cutoff = fuelDateCutoff();
+    rows.forEach(function(r){
+      var d = parseLocalDate(r['Date']); if(isNaN(d)||d<cutoff) return;
+      var k = d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+      byD2[k]=(byD2[k]||0)+(parseFloat(String(r['Amount ($)']).replace(/[$,]/g,''))||0);
+    });
+    var sorted2 = Object.keys(byD2).sort(function(a,b){ return new Date(a)-new Date(b); });
+    labels=sorted2; values=sorted2.map(function(k){return byD2[k]||0;});
+  } else {
+    // Monthly buckets
+    titleText = fuelPeriod==='ytd'?'Fuel Spend — Monthly (This Year)':'Fuel Spend — Monthly (All Time)';
+    chartType = 'line'; bgColor = 'rgba(168,85,247,.15)';
+    var byM = {};
+    rows.forEach(function(r){ var m=r['Month']||''; if(!m) return;
+      byM[m]=(byM[m]||0)+(parseFloat(String(r['Amount ($)']).replace(/[$,]/g,''))||0); });
+    labels=Object.keys(byM).sort(); values=labels.map(function(k){return byM[k]||0;});
+  }
+
+  var titleEl = document.getElementById('fuel-line-title');
+  if(titleEl) titleEl.textContent = titleText;
+
+  var ctx = document.getElementById('chart-fuel-line').getContext('2d');
+  if(chartFuelLine) chartFuelLine.destroy();
+  chartFuelLine = new Chart(ctx, {
+    type: chartType,
+    data: { labels: labels, datasets:[{
+      label:'Fuel Spend ($)', data: values,
+      borderColor:'#a855f7', backgroundColor: bgColor,
+      tension:.4, fill:true, pointRadius:3, pointBackgroundColor:'#a855f7'
+    }]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      scales:{
+        x:{ticks:{color:'#94a3b8',maxRotation:45},grid:{color:'rgba(255,255,255,.05)'}},
+        y:{ticks:{color:'#94a3b8',callback:function(v){return '$'+v.toLocaleString();}},grid:{color:'rgba(255,255,255,.05)'},beginAtZero:true}
+      }, plugins: CHART_DEFAULTS.plugins }
+  });
+  registerChart('chart-fuel-line', titleText, chartFuelLine.config.type, chartFuelLine.config.data, chartFuelLine.config.options);
+}
+
 function renderFuelBarChart(conRows, invRows) {
-  // Smart granularity: short period → daily, long period → monthly
-  var isShort = (fuelPeriod === 7 || fuelPeriod === 30);
+  // Smart granularity: today/short → daily, long → monthly
+  var isShort = (fuelPeriod === 'today' || fuelPeriod === 7 || fuelPeriod === 30 || fuelPeriod === 'mtd');
   var delivered={}, consumed={};
 
   if (isShort) {
@@ -1088,7 +1165,9 @@ function renderFuelBarChart(conRows, invRows) {
   }
 
   var buckets = Object.keys(Object.assign({}, delivered, consumed)).sort();
-  var chartTitle = isShort ? 'Daily Delivered vs Consumed' : 'Monthly Delivered vs Consumed';
+  var chartTitle = isShort ? 'Daily Delivered vs Consumed (gal)' : 'Monthly Delivered vs Consumed (gal)';
+  var barTitleEl = document.getElementById('fuel-bar-title');
+  if(barTitleEl) barTitleEl.textContent = chartTitle;
   var ctx = document.getElementById('chart-fuel-bar').getContext('2d');
   if (chartFuelBar) chartFuelBar.destroy();
   chartFuelBar = new Chart(ctx, {
