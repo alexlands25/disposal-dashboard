@@ -1296,33 +1296,48 @@ function renderFuelDeptChart(conRows) {
 function loadData() {
   setTableLoading();
 
-  var fetchUrl = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID +
-    '/gviz/tq?tqx=out:json&sheet=' + encodeURIComponent(SHEET_TAB);
-
-  fetch(fetchUrl)
-    .then(function(r) {
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.text();
-    })
-    .then(function(text) {
-      // Strip Google's JSONP wrapper (handles /*O_o*/ prefix)
-      var json = text.replace(/^\/\*[^*]*\*\/\s*/, '').replace(/^[^(]*\(/, '').replace(/\);?\s*$/, '');
-      var gviz = JSON.parse(json);
-      var cols = gviz.table.cols.map(function(c) { return c.label; });
-      var rows = (gviz.table.rows || []).map(function(row) {
-        var obj = {};
-        row.c.forEach(function(cell, i) {
-          obj[cols[i]] = cell ? (cell.f || cell.v || '') : '';
-        });
-        return obj;
-      }).filter(function(r) { return r['Date'] || r['Store'] || r['Amount']; });
-      allRows = rows.map(function(r, i) { return normalizeRow(r, i); });
-      document.getElementById('last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString();
-      applyFilters();
-    })
-    .catch(function(err) {
-      setTableError(err.toString());
-    });
+  // Use Apps Script directly to bypass gviz cache (edits reflect immediately)
+  fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ action: 'getRows', sheetId: SHEET_ID, tabName: SHEET_TAB, startRow: 1 })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (!data.ok) throw new Error(data.error || 'Script error');
+    var raw = data.rows;
+    if (!raw || raw.length < 2) { allRows = []; applyFilters(); return; }
+    var hdrs = raw[0].map(function(h) { return String(h || '').trim(); });
+    var rows = raw.slice(1).map(function(row, i) {
+      var obj = {};
+      hdrs.forEach(function(h, j) { obj[h] = (row[j] != null && row[j] !== '') ? row[j] : ''; });
+      return obj;
+    }).filter(function(r) { return r['Date'] || r['Store'] || r['Amount']; });
+    allRows = rows.map(function(r, i) { return normalizeRow(r, i); });
+    document.getElementById('last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString();
+    applyFilters();
+  })
+  .catch(function(err) {
+    // Fallback to gviz if Apps Script fails
+    var fetchUrl = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID +
+      '/gviz/tq?tqx=out:json&sheet=' + encodeURIComponent(SHEET_TAB) + '&_t=' + Date.now();
+    fetch(fetchUrl)
+      .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+      .then(function(text) {
+        var json = text.replace(/^\/\*[^*]*\*\/\s*/, '').replace(/^[^(]*\(/, '').replace(/\);?\s*$/, '');
+        var gviz = JSON.parse(json);
+        var cols = gviz.table.cols.map(function(c) { return c.label; });
+        var rows = (gviz.table.rows || []).map(function(row) {
+          var obj = {};
+          row.c.forEach(function(cell, i) { obj[cols[i]] = cell ? (cell.f || cell.v || '') : ''; });
+          return obj;
+        }).filter(function(r) { return r['Date'] || r['Store'] || r['Amount']; });
+        allRows = rows.map(function(r, i) { return normalizeRow(r, i); });
+        document.getElementById('last-updated').textContent = 'Updated (cached) ' + new Date().toLocaleTimeString();
+        applyFilters();
+      })
+      .catch(function(err2) { setTableError(err2.toString()); });
+  });
 }
 
 function normalizeRow(r, i) {
