@@ -1157,13 +1157,22 @@ function loadData() {
     });
 }
 
+function parseLocalDate(s) {
+  // Force ISO dates (YYYY-MM-DD) to parse as LOCAL time, not UTC
+  // Otherwise "2026-04-26" parses as Apr 25 8PM EDT and breaks Today filter
+  if (!s) return new Date(0);
+  s = String(s).trim();
+  var iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return new Date(parseInt(iso[1]), parseInt(iso[2])-1, parseInt(iso[3]));
+  var d = new Date(s); // M/D/YYYY and other formats are already local
+  return isNaN(d) ? new Date(0) : d;
+}
+
 function normalizeRow(r) {
-  // Ensure Amount is a number
   var amt = parseFloat(String(r['Amount'] || '').replace(/[$,]/g, '')) || 0;
-  var d = new Date(r['Date']);
   return Object.assign({}, r, {
     _amount: amt,
-    _date: isNaN(d) ? new Date(0) : d
+    _date: parseLocalDate(r['Date'])
   });
 }
 
