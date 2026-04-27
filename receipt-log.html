@@ -1498,7 +1498,7 @@ function renderLineChart() {
       var sevenAgo = new Date(); sevenAgo.setDate(sevenAgo.getDate()-6);
       sevenAgo = new Date(sevenAgo.getFullYear(), sevenAgo.getMonth(), sevenAgo.getDate());
       var byDate7 = {};
-      allRows.forEach(function(r){
+      filteredRows.forEach(function(r){
         if(r._date >= sevenAgo){
           var key = r._date.toLocaleDateString('en-US',{month:'short',day:'numeric'});
           byDate7[key] = (byDate7[key]||0) + r._amount;
