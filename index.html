@@ -87,6 +87,42 @@
     /* ─── Fuel Page ─────────────────────────────────────────── */
     #fuel-page { display: none; }
     #disposal-page { display: none; }
+    #amex-page { display: none; }
+    .amex-kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap: 14px; margin-bottom: 24px; }
+    .amex-kpi { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
+    .amex-kpi .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+    .amex-kpi .value { font-size: 24px; font-weight: 700; }
+    .amex-kpi .sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .amex-kpi.red .value { color: #ff6b6b; }
+    .amex-kpi.yellow .value { color: #ffd93d; }
+    .amex-kpi.green .value { color: #6bcb77; }
+    .amex-kpi.blue .value { color: #4d96ff; }
+    .amex-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+    @media(max-width:700px){ .amex-two-col { grid-template-columns: 1fr; } }
+    .amex-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
+    .amex-card h3 { font-size: 13px; font-weight: 600; margin-bottom: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+    .amex-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; font-size: 12px; }
+    .amex-bar-label { width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
+    .amex-bar-track { flex: 1; height: 7px; background: var(--border); border-radius: 4px; overflow: hidden; }
+    .amex-bar-fill { height: 100%; border-radius: 4px; background: var(--green); }
+    .amex-bar-amt { width: 80px; text-align: right; color: var(--muted); }
+    .amex-flag-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 12px; gap: 10px; }
+    .amex-flag-row:last-child { border-bottom: none; }
+    .amex-flag-desc { flex: 1; color: var(--text); }
+    .amex-flag-badge { background: rgba(255,107,107,.15); color: #ff6b6b; border-radius: 4px; padding: 2px 7px; font-size: 11px; white-space: nowrap; }
+    .amex-filter-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+    .amex-filter-row select, .amex-filter-row input { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 7px 12px; font-size: 13px; }
+    .amex-table-wrap { overflow-x: auto; }
+    .amex-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .amex-table th { background: var(--surface); color: var(--muted); padding: 10px 12px; text-align: left; font-weight: 500; white-space: nowrap; }
+    .amex-table td { padding: 9px 12px; border-top: 1px solid var(--border); vertical-align: top; }
+    .amex-table tr:hover td { background: rgba(255,255,255,.03); }
+    .badge-family { background: rgba(77,150,255,.15); color: #4d96ff; border-radius: 4px; padding: 2px 7px; font-size: 10px; }
+    .badge-flag { background: rgba(255,107,107,.15); color: #ff6b6b; border-radius: 4px; padding: 2px 7px; font-size: 10px; }
+    .badge-ok { background: rgba(107,203,119,.15); color: #6bcb77; border-radius: 4px; padding: 2px 7px; font-size: 10px; }
+    .amex-tabs { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
+    .amex-sub-tab { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 14px; font-size: 12px; cursor: pointer; color: var(--muted); }
+    .amex-sub-tab.active { background: var(--green); color: #000; border-color: var(--green); font-weight: 600; }
     .fuel-recon-table table { width:100%; border-collapse:collapse; font-size:13px; }
     .fuel-recon-table th { background: var(--surface); color: var(--muted); padding: 10px 14px; text-align:left; font-weight:500; }
     .fuel-recon-table td { padding: 10px 14px; border-top: 1px solid var(--border); }
@@ -95,6 +131,17 @@
     .fuel-status-warn { color: #f97316; font-weight:600; }
     .fuel-status-bad  { color: #ef4444; font-weight:600; }
     .fuel-cards { display:grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap:16px; margin-bottom:24px; }
+
+    .status-select {
+      appearance: none;
+      -webkit-appearance: none;
+      cursor: pointer;
+      outline: none;
+      min-width: 90px;
+      text-align: center;
+    }
+    .status-select:hover { opacity: 0.85; }
+    .status-select option { background: #1e293b; color: #f1f5f9; font-weight: 500; }
 
     .status-pill {
       display: flex; align-items: center; gap: 6px;
@@ -335,19 +382,24 @@
 <div class="app">
 
   <!-- Header -->
-  <div class="header">
+  <div class="header" style="justify-content:space-between;align-items:center">
     <div class="header-left">
       <div class="logo">🧾</div>
       <div class="header-title">
         <h1>Epic Receipt Log</h1>
-        <p>Operational Expense Tracking — Epic Landscaping &nbsp;<span style="background:rgba(34,197,94,.15);color:#22c55e;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.04em">v2.6.0</span></p>
+        <p>Operational Expense Tracking — Epic Landscaping &nbsp;<span style="background:rgba(34,197,94,.15);color:#22c55e;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.04em">v2.3.0</span></p>
       </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <a href="/cdn-cgi/access/logout" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:var(--muted);font-size:12px;padding:6px 14px;border-radius:6px;text-decoration:none;cursor:pointer" title="Sign out and re-authenticate">🔒 Logout</a>
     </div>
     <!-- Page Nav Tabs -->
   <nav class="page-nav">
     <button class="page-tab active" onclick="showPage('receipts',this)" id="tab-receipts">🧾 Receipts</button>
     <button class="page-tab" onclick="showPage('fuel',this)" id="tab-fuel">⛽ Fuel</button>
     <button class="page-tab" onclick="showPage('disposal',this)" id="tab-disposal">🗑️ EPIC DUMPS</button>
+    <button class="page-tab" onclick="showPage('corrections',this)" id="tab-corrections">✏️ Corrections</button>
+    <button class="page-tab" onclick="showPage('amex',this)" id="tab-amex">💳 AMEX Intelligence</button>
   </nav>
 
   <div class="status-pill">
@@ -365,14 +417,24 @@
   </div>
 
   <!-- Filters -->
-  <div id="receipts-page">
   <div class="filter-row">
     <div class="filter-group" id="time-chips">
       <div class="chip"        data-days="today" onclick="setDays('today',this)">Today</div>
-      <div class="chip active" data-days="7"     onclick="setDays(7,this)">Last 7d</div>
-      <div class="chip"        data-days="30"    onclick="setDays(30,this)">Last 30d</div>
-      <div class="chip"        data-days="mtd"   onclick="setDays('mtd',this)">This Month</div>
-      <div class="chip"        data-days="ytd"   onclick="setDays('ytd',this)">This Year</div>
+      <div class="chip active" data-days="7"   onclick="setDays(7,this)">Last 7d</div>
+      <div class="chip"        data-days="30"  onclick="setDays(30,this)">Last 30d</div>
+      <div class="chip"        data-days="mtd" onclick="setDays('mtd',this)">This Month</div>
+      <div class="chip"        data-days="ytd" onclick="setDays('ytd',this)">This Year</div>
+    </div>
+    <!-- Amount range filter -->
+    <div class="filter-group" style="align-items:center;gap:6px">
+      <span style="color:var(--muted);font-size:12px;white-space:nowrap">Amount:</span>
+      <input type="number" id="amt-min" placeholder="Min $" min="0" step="1"
+        style="width:90px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:13px;font-family:inherit"
+        oninput="setAmtFilter()" />
+      <span style="color:var(--muted);font-size:12px">–</span>
+      <input type="number" id="amt-max" placeholder="Max $" min="0" step="1"
+        style="width:90px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:13px;font-family:inherit"
+        oninput="setAmtFilter()" />
     </div>
     <div class="filter-group" id="dept-chips">
       <div class="chip active" data-dept="All" onclick="setDept('All',this)">All Depts</div>
@@ -433,7 +495,7 @@
   <div class="table-section">
     <div class="table-header">
       <h2>All Receipts</h2>
-      <input class="search-input" type="text" placeholder="Search store, dept, employee…" oninput="filterTable(this.value)" id="search-box" />
+      <input class="search-input" type="text" placeholder="Search store, dept, employee, amount, job…" oninput="filterTable(this.value)" id="search-box" />
     </div>
     <div class="table-wrap">
       <table id="receipts-table">
@@ -462,7 +524,6 @@
     </div>
     <div class="table-footer" id="table-footer">— rows</div>
   </div>
-  </div><!-- /receipts-page -->
 
 <!-- ⛽ FUEL PAGE ────────────────────────────────── -->
 <div id="fuel-page">
@@ -471,11 +532,10 @@
   <div class="filter-row" style="margin-bottom:20px">
     <div class="filter-group" id="fuel-time-chips">
       <div class="chip" data-fperiod="today" onclick="setFuelPeriod('today',this)">Today</div>
-      <div class="chip" data-fperiod="7"     onclick="setFuelPeriod(7,this)">Last 7d</div>
-      <div class="chip" data-fperiod="30"    onclick="setFuelPeriod(30,this)">Last 30d</div>
-      <div class="chip" data-fperiod="mtd"   onclick="setFuelPeriod('mtd',this)">This Month</div>
+      <div class="chip" data-fperiod="7"   onclick="setFuelPeriod(7,this)">Last 7d</div>
+      <div class="chip" data-fperiod="30"  onclick="setFuelPeriod(30,this)">Last 30d</div>
       <div class="chip active" data-fperiod="ytd" onclick="setFuelPeriod('ytd',this)">This Year</div>
-      <div class="chip" data-fperiod="all"   onclick="setFuelPeriod('all',this)">All Time</div>
+      <div class="chip" data-fperiod="all" onclick="setFuelPeriod('all',this)">All Time</div>
     </div>
   </div>
 
@@ -508,15 +568,9 @@
     </div>
   </div>
 
-  <!-- Fuel Spending Over Time (wave chart) -->
-  <div class="card" style="padding:16px;margin-bottom:16px">
-    <div style="font-weight:600;font-size:13px;margin-bottom:12px" id="fuel-line-title">Fuel Spend Over Time</div>
-    <div class="chart-card" style="height:200px;position:relative;cursor:pointer"><canvas id="chart-fuel-line"></canvas></div>
-  </div>
-
-  <!-- Delivered vs Consumed bar chart -->
+  <!-- Monthly bar chart -->
   <div class="card" style="padding:16px;margin-bottom:24px">
-    <div style="font-weight:600;font-size:13px;margin-bottom:12px" id="fuel-bar-title">Monthly Delivered vs Consumed (gallons)</div>
+    <div style="font-weight:600;font-size:13px;margin-bottom:12px">Monthly Delivered vs Consumed (gallons)</div>
     <div class="chart-card" style="height:220px;position:relative;cursor:pointer"><canvas id="chart-fuel-bar"></canvas></div>
   </div>
 
@@ -560,37 +614,88 @@
 <!-- ───────────────── DISPOSAL PAGE ───────────────── -->
 <div id="disposal-page">
 
-  <div class="fuel-cards">
-    <div class="card"><div class="card-label">Total Receipts</div><div class="card-value green" id="disp-count">—</div><div class="card-sub">all time</div></div>
-    <div class="card"><div class="card-label">Mantenimiento</div><div class="card-value blue" id="disp-mant">—</div><div class="card-sub">receipts</div></div>
-    <div class="card"><div class="card-label">Tree Trimming</div><div class="card-value orange" id="disp-tree">—</div><div class="card-sub">receipts</div></div>
-    <div class="card"><div class="card-label">Basura Rastra</div><div class="card-value purple" id="disp-rastra">—</div><div class="card-sub">receipts</div></div>
-  </div>
-
-  <!-- Disposal time filter chips -->
+  <!-- Year Filter -->
   <div class="filter-row" style="margin-bottom:20px">
-    <div class="filter-group" id="disp-time-chips">
-      <div class="chip" data-dperiod="today" onclick="setDispPeriod('today',this)">Today</div>
-      <div class="chip active" data-dperiod="7" onclick="setDispPeriod(7,this)">Last 7d</div>
-      <div class="chip" data-dperiod="30" onclick="setDispPeriod(30,this)">Last 30d</div>
-      <div class="chip" data-dperiod="all" onclick="setDispPeriod('all',this)">All Time</div>
+    <div class="filter-group" id="disp-year-chips">
+      <div class="chip" data-year="2024" onclick="setDispYear('2024',this)">2024</div>
+      <div class="chip" data-year="2025" onclick="setDispYear('2025',this)">2025</div>
+      <div class="chip active" data-year="2026" onclick="setDispYear('2026',this)">2026</div>
+      <div class="chip" data-year="all" onclick="setDispYear('all',this)">All Time</div>
     </div>
   </div>
 
-  <div class="charts" style="margin-bottom:24px">
-    <div class="chart-card wide">
-      <div class="chart-title" id="disp-time-title">Receipts Over Time</div>
-      <div class="chart-wrap"><canvas id="chart-disp-time"></canvas></div>
+  <!-- Summary Stats -->
+  <div class="fuel-cards" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin-bottom:24px">
+    <div class="card"><div class="card-label">Total Yards</div><div class="card-value green" id="disp-yards">—</div><div class="card-sub">all loads</div></div>
+    <div class="card"><div class="card-label">Total Loads</div><div class="card-value blue" id="disp-count">—</div><div class="card-sub">receipts</div></div>
+    <div class="card"><div class="card-label">Avg Yards/Load</div><div class="card-value orange" id="disp-avg-yards">—</div><div class="card-sub">average</div></div>
+    <div class="card"><div class="card-label">Paid to Organically</div><div class="card-value purple" id="disp-org-total">—</div><div class="card-sub">los tomates</div></div>
+    <div class="card"><div class="card-label">Cost / Yard</div><div class="card-value" style="color:#f43f5e" id="disp-cost-yard">—</div><div class="card-sub">avg per yard</div></div>
+  </div>
+
+  <!-- Charts 2x2 -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px" id="disp-charts-grid">
+    <div class="chart-card wide" style="grid-column:span 2" onclick="openChartModal('chart-disp-months','Yards by Month')">
+      <div class="chart-title">📅 Yards by Month</div>
+      <div class="chart-wrap"><canvas id="chart-disp-months"></canvas></div>
     </div>
-    <div class="chart-card">
-      <div class="chart-title">Receipts by Department</div>
+    <div class="chart-card" onclick="openChartModal('chart-disp-truck','Loads by Truck (Top 15)')">
+      <div class="chart-title">🚛 Loads by Truck (Top 15)</div>
+      <div class="chart-wrap" style="height:280px"><canvas id="chart-disp-truck"></canvas></div>
+    </div>
+    <div class="chart-card" onclick="openChartModal('chart-disp-dept','Yards by Department')">
+      <div class="chart-title">🏢 Yards by Dept</div>
       <div class="chart-wrap"><canvas id="chart-disp-dept"></canvas></div>
     </div>
+    <div class="chart-card wide" style="grid-column:span 2" onclick="openChartModal('chart-disp-org-cost','Monthly Organically Cost')">
+      <div class="chart-title">💰 Monthly Cost — Organically (los tomates)</div>
+      <div class="chart-wrap"><canvas id="chart-disp-org-cost"></canvas></div>
+    </div>
   </div>
 
+  <!-- Epic HQ Section -->
+  <div class="table-section" style="margin-bottom:24px">
+    <div class="table-header" style="background:rgba(251,191,36,.05);border-color:#fbbf24">
+      <h2 style="color:#fbbf24">🏠 Epic HQ Disposal</h2>
+      <span style="color:var(--muted);font-size:12px">Client = "EPIC" — loads dumped at headquarters</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;padding:16px;border-bottom:1px solid var(--border)">
+      <div class="card" style="margin:0"><div class="card-label">HQ Loads</div><div class="card-value" style="color:#fbbf24" id="hq-loads">—</div></div>
+      <div class="card" style="margin:0"><div class="card-label">HQ Yards</div><div class="card-value" style="color:#fbbf24" id="hq-yards">—</div></div>
+      <div class="card" style="margin:0"><div class="card-label">Est. Cost</div><div class="card-value" style="color:#fbbf24" id="hq-cost">—</div><div class="card-sub">avg $/yard × HQ yards</div></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Date</th><th>Receipt #</th><th>Yards</th><th>Truck</th><th>Employee</th><th>Type</th></tr></thead>
+        <tbody id="hq-body"><tr><td colspan="6"><div class="loading-msg">Loading…</div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Organically Reconciliation -->
+  <div class="table-section" style="margin-bottom:24px">
+    <div class="table-header" style="cursor:pointer" onclick="toggleRecon()">
+      <h2>🔍 Organically Reconciliation</h2>
+      <span id="recon-toggle" style="color:var(--muted);font-size:18px">▼</span>
+    </div>
+    <div id="recon-body" style="display:none">
+      <div style="padding:12px 20px;color:var(--muted);font-size:12px;border-bottom:1px solid var(--border)">
+        Cruza ticket # de Organically vs nuestros recibos. 🟢 Matched = ticket encontrado. 🟠 No Match = no está en nuestros records (posible error de cobro).
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Invoice #</th><th>Date</th><th>Ticket #</th><th>Truck</th><th>Activity</th><th>Amount</th><th>Status</th></tr></thead>
+          <tbody id="recon-table-body"><tr><td colspan="7"><div class="loading-msg"><div class="loading-spin"></div><br/>Loading Organically data…</div></td></tr></tbody>
+        </table>
+      </div>
+      <div class="table-footer" id="recon-footer">—</div>
+    </div>
+  </div>
+
+  <!-- Full Table -->
   <div class="table-section fuel-recon-table">
     <div class="table-header">
-      <h2>Disposal Receipts</h2>
+      <h2>All Disposal Receipts</h2>
       <input class="search-input" type="text" placeholder="Search receipt, employee, truck…" oninput="filterDisposal(this.value)" id="disp-search" />
     </div>
     <div class="table-wrap">
@@ -605,6 +710,106 @@
   </div>
 
 </div><!-- /disposal-page -->
+
+<!-- Corrections Log Page -->
+<!-- ═══════════════ AMEX INTELLIGENCE PAGE ═══════════════ -->
+<div id="amex-page" style="display:none">
+  <div class="amex-tabs">
+    <button class="amex-sub-tab active" onclick="amexSubPage('overview',this)">📊 Overview</button>
+    <button class="amex-sub-tab" onclick="amexSubPage('employees',this)">👤 Employees</button>
+    <button class="amex-sub-tab" onclick="amexSubPage('categories',this)">🏷️ Categories</button>
+    <button class="amex-sub-tab" onclick="amexSubPage('flags',this)">🚨 Flags</button>
+    <button class="amex-sub-tab" onclick="amexSubPage('transactions',this)">📋 Transactions</button>
+  </div>
+
+  <!-- OVERVIEW -->
+  <div id="amex-overview">
+    <div class="amex-kpi-grid" id="amex-kpis"></div>
+    <div class="amex-two-col">
+      <div class="amex-card"><h3>💼 Spend by Division</h3><div id="amex-div-bars"></div></div>
+      <div class="amex-card"><h3>🏷️ Top Categories</h3><div id="amex-cat-bars"></div></div>
+    </div>
+    <div class="amex-two-col">
+      <div class="amex-card"><h3>📣 Marketing Spend</h3><div id="amex-marketing"></div></div>
+      <div class="amex-card"><h3>🚨 Recent Flags</h3><div id="amex-flags-preview"></div></div>
+    </div>
+  </div>
+
+  <!-- EMPLOYEES -->
+  <div id="amex-employees" style="display:none">
+    <div class="amex-card"><h3>💳 Cardholder Breakdown</h3><div id="amex-emp-bars"></div></div>
+  </div>
+
+  <!-- CATEGORIES -->
+  <div id="amex-categories" style="display:none">
+    <div class="amex-card"><h3>🏷️ All Categories</h3><div id="amex-allcat-bars"></div></div>
+  </div>
+
+  <!-- FLAGS -->
+  <div id="amex-flaglist" style="display:none">
+    <div class="amex-card"><h3>🚨 All Flagged Transactions</h3><div id="amex-flags-all"></div></div>
+  </div>
+
+  <!-- TRANSACTIONS -->
+  <div id="amex-transactions" style="display:none">
+    <div class="amex-card">
+      <h3>📋 Transaction Ledger</h3>
+      <div class="amex-filter-row">
+        <input id="amex-search" type="text" placeholder="Search merchant, cardholder…" oninput="renderAmexTable()" />
+        <select id="amex-filter-type" onchange="renderAmexTable()">
+          <option value="">All Types</option>
+          <option>Business</option>
+          <option>Owner/Family</option>
+          <option>Owner/Personal</option>
+        </select>
+        <select id="amex-filter-cat" onchange="renderAmexTable()"><option value="">All Categories</option></select>
+        <select id="amex-filter-div" onchange="renderAmexTable()"><option value="">All Divisions</option></select>
+      </div>
+      <div class="amex-table-wrap"><table class="amex-table" id="amex-ledger-table">
+        <thead><tr><th>Date</th><th>Merchant</th><th>Cardholder</th><th>Type</th><th>Division</th><th>Category</th><th>Amount</th><th>Flags</th></tr></thead>
+        <tbody id="amex-ledger-body"></tbody>
+      </table></div>
+      <div style="padding:10px 0; font-size:12px; color:var(--muted)" id="amex-ledger-footer"></div>
+    </div>
+  </div>
+</div>
+
+<div id="corrections-page" style="display:none">
+  <div class="cards" style="margin-bottom:20px">
+    <div class="card">
+      <div class="card-label">Total Corrections</div>
+      <div class="card-value blue" id="corr-total">0</div>
+      <div class="card-sub">this session</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Dept Fixes</div>
+      <div class="card-value orange" id="corr-dept">0</div>
+      <div class="card-sub">department errors</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Status Fixes</div>
+      <div class="card-value purple" id="corr-status">0</div>
+      <div class="card-sub">status changes</div>
+    </div>
+  </div>
+  <div class="table-section">
+    <div class="table-header">
+      <h2>✏️ Corrections Log</h2>
+      <span style="font-size:12px;color:var(--muted)">Manual edits made to AI-captured data</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Time</th><th>Field</th><th>Store</th><th>Date</th><th>From</th><th>To</th>
+        </tr></thead>
+        <tbody id="corr-body">
+          <tr><td colspan="6"><div class="empty-msg">No corrections yet this session.</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="table-footer" id="corr-footer">0 corrections</div>
+  </div>
+</div><!-- /corrections-page -->
 
 
 <!-- Chart Expand Modal -->
@@ -647,6 +852,177 @@ var chartLine, chartDonut, chartBar;
 // ─── Config — hardcoded Sheet ID ─────────────────────────────────────────────
 var SHEET_ID = '1uvwHpRUYOVki3EG9WGbtX4Em8vM1EPw6nM0DCEOTykc';
 var SHEET_TAB = 'Epic Receipt Log';
+var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxlQ9_5ww_Dq-675HCvORrXvbOYmztDs8pO8ZMm0FrlcMsTjbzLHnVY22a1oBYRb8kxYA/exec';
+var STATUS_COL = 12; // Column L in sheet (1-based)
+var DEPT_COL   = 2;  // Column B in sheet (1-based)
+var CORRECTIONS_LOG_TAB = 'Corrections Log';
+var amtMin = 0;
+var amtMax = Infinity;
+var correctionLog = []; // in-memory log for current session
+
+// ─── AMEX ────────────────────────────────────────────────────────────────────
+var amexRows = [];
+var amexCurrentSub = 'overview';
+
+function loadAmexData() {
+  var url = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:json&sheet=' + encodeURIComponent('AMEX');
+  fetch(url).then(function(r){ return r.text(); }).then(function(text) {
+    var json = JSON.parse(text.replace(/^[^{]+/, '').replace(/;?\s*$/, ''));
+    var cols = json.table.cols.map(function(c){ return c.label; });
+    amexRows = [];
+    json.table.rows.forEach(function(row) {
+      var obj = {};
+      cols.forEach(function(col, i) {
+        obj[col] = row.c[i] && row.c[i].v !== null ? row.c[i].v : '';
+      });
+      // Skip header row if duplicated
+      if (obj['Date'] === 'Date') return;
+      if (!obj['Amount'] && obj['Amount'] !== 0) return;
+      obj['Amount'] = parseFloat(obj['Amount']) || 0;
+      amexRows.push(obj);
+    });
+    renderAmexOverview();
+    populateAmexFilters();
+  }).catch(function(e){ console.error('AMEX load error', e); });
+}
+
+function amexSubPage(sub, el) {
+  document.querySelectorAll('.amex-sub-tab').forEach(function(t){ t.classList.remove('active'); });
+  el.classList.add('active');
+  ['overview','employees','categories','flaglist','transactions'].forEach(function(s) {
+    var el = document.getElementById('amex-' + s);
+    if (el) el.style.display = 'none';
+  });
+  amexCurrentSub = sub;
+  var target = document.getElementById('amex-' + (sub === 'flags' ? 'flaglist' : sub));
+  if (target) target.style.display = 'block';
+  if (sub === 'overview') renderAmexOverview();
+  if (sub === 'employees') renderAmexEmployees();
+  if (sub === 'categories') renderAmexCategories();
+  if (sub === 'flags') renderAmexFlags();
+  if (sub === 'transactions') renderAmexTable();
+}
+
+function amexCharges() { return amexRows.filter(function(r){ return r['Amount'] > 0; }); }
+
+function fmt(n) { return '$' + Math.abs(n).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+
+function renderAmexOverview() {
+  if (!amexRows.length) return;
+  var charges = amexCharges();
+  var total = charges.reduce(function(s,r){ return s + r['Amount']; }, 0);
+  var bizOnly = charges.filter(function(r){ return r['Type'] === 'Business'; });
+  var bizTotal = bizOnly.reduce(function(s,r){ return s + r['Amount']; }, 0);
+  var familyTotal = charges.filter(function(r){ return r['Type'] !== 'Business'; }).reduce(function(s,r){ return s + r['Amount']; }, 0);
+  var flagged = charges.filter(function(r){ return r['Flags'] && r['Flags'] !== 'Owner/Family' && !r['Flags'].startsWith('Owner/Family'); });
+  var mktTotal = charges.filter(function(r){ return r['Category'] === 'Marketing'; }).reduce(function(s,r){ return s + r['Amount']; }, 0);
+
+  document.getElementById('amex-kpis').innerHTML = [
+    '<div class="amex-kpi blue"><div class="label">Total Charges</div><div class="value">' + fmt(total) + '</div><div class="sub">' + charges.length + ' transactions</div></div>',
+    '<div class="amex-kpi green"><div class="label">Business Spend</div><div class="value">' + fmt(bizTotal) + '</div><div class="sub">Operations only</div></div>',
+    '<div class="amex-kpi yellow"><div class="label">Owner / Family</div><div class="value">' + fmt(familyTotal) + '</div><div class="sub">Separated from ops</div></div>',
+    '<div class="amex-kpi"><div class="label">Marketing Spend</div><div class="value">' + fmt(mktTotal) + '</div><div class="sub">Thumbtack + more</div></div>',
+    '<div class="amex-kpi red"><div class="label">Flagged Items</div><div class="value">' + flagged.length + '</div><div class="sub">Needs review</div></div>',
+  ].join('');
+
+  // Division bars
+  var divs = {};
+  bizOnly.forEach(function(r){ divs[r['Division']] = (divs[r['Division']]||0) + r['Amount']; });
+  var divMax = Math.max.apply(null, Object.values(divs));
+  document.getElementById('amex-div-bars').innerHTML = Object.entries(divs).sort(function(a,b){ return b[1]-a[1]; }).map(function(e){
+    return '<div class="amex-bar-row"><div class="amex-bar-label">' + e[0] + '</div><div class="amex-bar-track"><div class="amex-bar-fill" style="width:' + (e[1]/divMax*100).toFixed(1) + '%"></div></div><div class="amex-bar-amt">' + fmt(e[1]) + '</div></div>';
+  }).join('');
+
+  // Category bars (top 8)
+  var cats = {};
+  charges.forEach(function(r){ cats[r['Category']] = (cats[r['Category']]||0) + r['Amount']; });
+  var catMax = Math.max.apply(null, Object.values(cats));
+  var catEntries = Object.entries(cats).sort(function(a,b){ return b[1]-a[1]; }).slice(0,8);
+  document.getElementById('amex-cat-bars').innerHTML = catEntries.map(function(e){
+    return '<div class="amex-bar-row"><div class="amex-bar-label">' + e[0] + '</div><div class="amex-bar-track"><div class="amex-bar-fill" style="width:' + (e[1]/catMax*100).toFixed(1) + '%"></div></div><div class="amex-bar-amt">' + fmt(e[1]) + '</div></div>';
+  }).join('');
+
+  // Marketing detail
+  var mktRows = charges.filter(function(r){ return r['Category'] === 'Marketing'; });
+  var mktVendors = {};
+  mktRows.forEach(function(r){ var m = r['Merchant'] || r['Description']; m = m.split(' ')[0]; mktVendors[m] = (mktVendors[m]||0) + r['Amount']; });
+  document.getElementById('amex-marketing').innerHTML = '<div style="margin-bottom:10px;font-size:13px">Total: <strong>' + fmt(mktTotal) + '</strong> | ' + mktRows.length + ' transactions</div>' +
+    Object.entries(mktVendors).sort(function(a,b){ return b[1]-a[1]; }).map(function(e){
+      return '<div class="amex-bar-row"><div class="amex-bar-label">' + e[0] + '</div><div class="amex-bar-track"><div class="amex-bar-fill" style="background:#4d96ff;width:' + (e[1]/mktTotal*100).toFixed(1) + '%"></div></div><div class="amex-bar-amt">' + fmt(e[1]) + '</div></div>';
+    }).join('') +
+    '<div style="margin-top:12px;font-size:11px;color:var(--muted)">⏳ Google Ads data pending — ROI calc coming once connected</div>';
+
+  // Flags preview (top 8)
+  var fp = flagged.slice(0, 8);
+  document.getElementById('amex-flags-preview').innerHTML = fp.length ? fp.map(function(r){
+    return '<div class="amex-flag-row"><div class="amex-flag-desc"><div style="font-weight:600">' + (r['Merchant']||'').substring(0,35) + '</div><div style="color:var(--muted);margin-top:2px">' + r['Card Member'] + ' — ' + r['Date'] + '</div></div><div style="text-align:right"><div>' + fmt(r['Amount']) + '</div><div class="amex-flag-badge" style="margin-top:4px">' + (r['Flags']||'').split('|')[0].replace('⚠️','').trim() + '</div></div></div>';
+  }).join('') : '<div style="color:var(--muted);font-size:13px">No flags found.</div>';
+}
+
+function renderAmexEmployees() {
+  var charges = amexCharges();
+  var emp = {};
+  charges.forEach(function(r){ var k = r['Card Member'] + ' (' + r['Last 4'] + ')'; emp[k] = (emp[k]||0) + r['Amount']; });
+  var max = Math.max.apply(null, Object.values(emp));
+  document.getElementById('amex-emp-bars').innerHTML = Object.entries(emp).sort(function(a,b){ return b[1]-a[1]; }).map(function(e){
+    return '<div class="amex-bar-row"><div class="amex-bar-label" style="width:220px">' + e[0] + '</div><div class="amex-bar-track"><div class="amex-bar-fill" style="width:' + (e[1]/max*100).toFixed(1) + '%"></div></div><div class="amex-bar-amt">' + fmt(e[1]) + '</div></div>';
+  }).join('');
+}
+
+function renderAmexCategories() {
+  var charges = amexCharges();
+  var cats = {};
+  charges.forEach(function(r){ cats[r['Category']] = (cats[r['Category']]||0) + r['Amount']; });
+  var max = Math.max.apply(null, Object.values(cats));
+  document.getElementById('amex-allcat-bars').innerHTML = Object.entries(cats).sort(function(a,b){ return b[1]-a[1]; }).map(function(e){
+    return '<div class="amex-bar-row"><div class="amex-bar-label" style="width:200px">' + e[0] + '</div><div class="amex-bar-track"><div class="amex-bar-fill" style="width:' + (e[1]/max*100).toFixed(1) + '%"></div></div><div class="amex-bar-amt">' + fmt(e[1]) + '</div></div>';
+  }).join('');
+}
+
+function renderAmexFlags() {
+  var flagged = amexCharges().filter(function(r){ return r['Flags'] && !r['Flags'].match(/^Owner\/Family$/); });
+  document.getElementById('amex-flags-all').innerHTML = flagged.length ? flagged.map(function(r){
+    return '<div class="amex-flag-row"><div class="amex-flag-desc"><div style="font-weight:600">' + (r['Merchant']||'').substring(0,40) + '</div><div style="color:var(--muted);margin-top:2px">' + r['Card Member'] + ' · ' + r['Date'] + ' · ' + r['Division'] + '</div></div><div style="text-align:right;min-width:130px"><div style="font-weight:600">' + fmt(r['Amount']) + '</div><div class="amex-flag-badge" style="margin-top:4px">' + (r['Flags']||'').replace('⚠️','').trim() + '</div></div></div>';
+  }).join('') : '<div style="color:var(--muted)">No flags.</div>';
+}
+
+function populateAmexFilters() {
+  var cats = {}, divs = {};
+  amexRows.forEach(function(r){ if(r['Category']) cats[r['Category']]=1; if(r['Division']) divs[r['Division']]=1; });
+  var cs = document.getElementById('amex-filter-cat');
+  Object.keys(cats).sort().forEach(function(c){ var o=document.createElement('option'); o.value=c; o.textContent=c; cs.appendChild(o); });
+  var ds = document.getElementById('amex-filter-div');
+  Object.keys(divs).sort().forEach(function(d){ var o=document.createElement('option'); o.value=d; o.textContent=d; ds.appendChild(o); });
+}
+
+function renderAmexTable() {
+  var search = (document.getElementById('amex-search')||{value:''}).value.toLowerCase();
+  var typeF = (document.getElementById('amex-filter-type')||{value:''}).value;
+  var catF  = (document.getElementById('amex-filter-cat')||{value:''}).value;
+  var divF  = (document.getElementById('amex-filter-div')||{value:''}).value;
+  var filtered = amexRows.filter(function(r){
+    if (r['Amount'] < 0) return false; // hide payments in table
+    if (typeF && r['Type'] !== typeF) return false;
+    if (catF  && r['Category'] !== catF) return false;
+    if (divF  && r['Division'] !== divF) return false;
+    if (search) {
+      var s = ((r['Merchant']||'')+(r['Card Member']||'')+(r['Description']||'')+(r['Category']||'')).toLowerCase();
+      if (s.indexOf(search) === -1) return false;
+    }
+    return true;
+  });
+  var body = document.getElementById('amex-ledger-body');
+  body.innerHTML = filtered.slice(0, 300).map(function(r){
+    var flagBadge = r['Flags'] && r['Flags'] !== 'Owner/Family'
+      ? '<span class="amex-flag-badge">' + (r['Flags']||'').replace(/⚠️\s*/g,'').split('|')[0].trim() + '</span>' : '';
+    var typeBadge = r['Type'] === 'Business'
+      ? '<span class="badge-ok">Biz</span>'
+      : '<span class="badge-family">' + r['Type'] + '</span>';
+    return '<tr><td>' + r['Date'] + '</td><td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (r['Merchant']||'').substring(0,30) + '</td><td>' + r['Card Member'] + '</td><td>' + typeBadge + '</td><td>' + r['Division'] + '</td><td>' + r['Category'] + '</td><td style="text-align:right;font-weight:600">' + fmt(r['Amount']) + '</td><td>' + flagBadge + '</td></tr>';
+  }).join('');
+  document.getElementById('amex-ledger-footer').textContent = 'Showing ' + Math.min(filtered.length,300) + ' of ' + filtered.length + ' transactions';
+}
+// ─── END AMEX ─────────────────────────────────────────────────────────────────
 
 var fuelInvoiceRows = [];
 var fuelInvoiceFiltered = [];
@@ -656,96 +1032,10 @@ var chartFuelBar, chartFuelDept;
 
 var disposalRows = [];
 var disposalFiltered = [];
+var organicallyRows = [];
+var dispYearFilter = '2026';
+var chartDispMonths = null, chartDispTruck = null, chartDispDeptNew = null, chartDispOrgCost = null;
 var chartDispDept;
-var chartDispTime;
-var dispPeriod = 7;
-
-function setDispPeriod(p, el) {
-  dispPeriod = p;
-  document.querySelectorAll('#disp-time-chips .chip').forEach(function(c){ c.classList.remove('active'); });
-  el.classList.add('active');
-  renderDisposalCharts();
-}
-
-function dispDateCutoff() {
-  var now = new Date();
-  if (dispPeriod === 'today') return new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  if (dispPeriod === 'all')   return new Date(2020, 0, 1);
-  var d = new Date(now); d.setDate(d.getDate() - parseInt(dispPeriod)); return d;
-}
-
-function renderDisposalCharts() {
-  var cutoff = dispDateCutoff();
-  var now = new Date();
-  var dispCeiling = dispPeriod === 'today'
-    ? new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
-    : null;
-  var rows = disposalRows.filter(function(r){
-    var d = new Date(r['Date']);
-    if (isNaN(d) || d < cutoff) return false;
-    if (dispCeiling && d >= dispCeiling) return false; // block future dates
-    return true;
-  });
-
-  var isToday = (dispPeriod === 'today');
-  var labels, values, chartType, titleText;
-
-  if (isToday) {
-    // Hourly
-    titleText = 'Receipts — Hourly (Today)'; chartType = 'bar';
-    var todayStr2 = new Date().toDateString();
-    var byHour = {};
-    rows.forEach(function(r) {
-      var d = new Date(r['Date']);
-      if (!isNaN(d) && d.getFullYear() > 2000 && d.toDateString() === todayStr2) {
-        var h = d.getHours();
-        byHour[h] = (byHour[h] || 0) + 1;
-      }
-    });
-    var now = new Date();
-    var endH = Math.min(Math.max(now.getHours() + 1, 7), 22);
-    labels = []; values = [];
-    for (var h = 6; h <= endH; h++) {
-      labels.push(h === 12 ? '12 PM' : h > 12 ? (h-12)+' PM' : h+' AM');
-      values.push(byHour[h] || 0);
-    }
-  } else {
-    // Daily
-    titleText = 'Receipts Over Time'; chartType = 'bar';
-    var byDate = {};
-    rows.forEach(function(r) {
-      var d = new Date(r['Date']); if (!isNaN(d)) {
-        var key = d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
-        byDate[key] = (byDate[key]||0) + 1;
-      }
-    });
-    var sorted = rows
-      .filter(function(r){ return !isNaN(new Date(r['Date'])); })
-      .map(function(r){ var d = new Date(r['Date']); return { key: d.toLocaleDateString('en-US',{month:'short',day:'numeric'}), d: d }; })
-      .sort(function(a,b){ return a.d-b.d; });
-    var uniq = []; var seen = {};
-    sorted.forEach(function(x){ if(!seen[x.key]){ seen[x.key]=true; uniq.push(x.key); } });
-    labels = uniq;
-    values = uniq.map(function(k){ return byDate[k]||0; });
-  }
-
-  var titleEl = document.getElementById('disp-time-title');
-  if (titleEl) titleEl.textContent = titleText;
-
-  var ctx = document.getElementById('chart-disp-time').getContext('2d');
-  if (chartDispTime) chartDispTime.destroy();
-  chartDispTime = new Chart(ctx, {
-    type: chartType,
-    data: { labels: labels, datasets:[{ label:'Receipts', data:values, backgroundColor:'rgba(34,197,94,.75)', borderColor:'#22c55e', borderRadius:5 }] },
-    options: { responsive:true, maintainAspectRatio:false, plugins: CHART_DEFAULTS.plugins,
-      scales:{ x:{ticks:{color:'#94a3b8',maxRotation: isToday?0:45},grid:{color:'rgba(255,255,255,.05)'}},
-               y:{ticks:{color:'#94a3b8',stepSize:1},grid:{color:'rgba(255,255,255,.05)'},beginAtZero:true} } }
-  });
-  registerChart('chart-disp-time', titleText, chartDispTime.config.type, chartDispTime.config.data, chartDispTime.config.options);
-
-  // Dept chart (using all rows, not filtered by period)
-  renderDisposalDeptChart();
-}
 
 function showPage(page, el) {
   document.querySelectorAll('.page-tab').forEach(function(t){ t.classList.remove('active'); });
@@ -763,10 +1053,14 @@ function showPage(page, el) {
 
   var fuelPage = document.getElementById('fuel-page');
   var dispPage = document.getElementById('disposal-page');
+  var corrPage = document.getElementById('corrections-page');
+  var amexPage = document.getElementById('amex-page');
 
   receiptSections.forEach(function(s){ s.style.display = 'none'; });
   fuelPage.style.display = 'none';
   dispPage.style.display = 'none';
+  if (corrPage) corrPage.style.display = 'none';
+  if (amexPage) amexPage.style.display = 'none';
 
   if (page === 'fuel') {
     fuelPage.style.display = 'block';
@@ -774,6 +1068,12 @@ function showPage(page, el) {
   } else if (page === 'disposal') {
     dispPage.style.display = 'block';
     if (!disposalRows.length) loadDisposalData();
+    if (!organicallyRows.length) loadOrganicallyData();
+  } else if (page === 'corrections') {
+    if (corrPage) { corrPage.style.display = 'block'; renderCorrectionsPage(); }
+  } else if (page === 'amex') {
+    document.getElementById('amex-page').style.display = 'block';
+    if (!amexRows.length) loadAmexData();
   } else {
     receiptSections.forEach(function(s){ s.style.display = ''; });
   }
@@ -810,36 +1110,185 @@ function filterDisposal(val) {
 }
 
 function renderDisposalPage() {
-  var byDept = {};
-  disposalRows.forEach(function(r){
-    var d = r['Department']||'Unknown';
-    byDept[d] = (byDept[d]||0) + 1;
-  });
-  document.getElementById('disp-count').textContent = disposalRows.length.toLocaleString();
-  document.getElementById('disp-mant').textContent = (byDept['Mantenimiento']||0).toLocaleString();
-  document.getElementById('disp-tree').textContent = (byDept['Tree Trimming']||0).toLocaleString();
-  document.getElementById('disp-rastra').textContent = (byDept['Basura Rastra']||0).toLocaleString();
-  renderDisposalTable();
-  renderDisposalDeptChart();
-  renderDisposalCharts();
+  renderDisposalAnalytics();
 }
 
-function renderDisposalDeptChart() {
-  var byDept = {};
-  disposalRows.forEach(function(r){
-    var d = r['Department']||'Unknown';
-    byDept[d] = (byDept[d]||0) + 1;
+function setDispYear(yr, el) {
+  dispYearFilter = yr;
+  document.querySelectorAll('#disp-year-chips .chip').forEach(function(c){ c.classList.remove('active'); });
+  el.classList.add('active');
+  renderDisposalAnalytics();
+}
+
+function dispFilteredRows() {
+  if (dispYearFilter === 'all') return disposalRows;
+  return disposalRows.filter(function(r) {
+    return (r['Date']||'').includes(dispYearFilter) || (r['Processed Date']||'').includes(dispYearFilter);
   });
-  var depts = Object.keys(byDept);
-  var COLORS=['#22c55e','#3b82f6','#f97316','#a855f7','#06b6d4','#84cc16'];
-  var ctx = document.getElementById('chart-disp-dept').getContext('2d');
-  if (chartDispDept) chartDispDept.destroy();
-  chartDispDept = new Chart(ctx, {
-    type: 'doughnut',
-    data: { labels: depts, datasets:[{ data: depts.map(function(d){return byDept[d];}), backgroundColor: COLORS, borderColor:'#273449', borderWidth:2 }] },
-    options: { responsive:true, maintainAspectRatio:false, cutout:'60%', plugins: CHART_DEFAULTS.plugins }
+}
+
+function loadOrganicallyData() {
+  var url = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:json&sheet=' + encodeURIComponent('Organically');
+  fetch(url).then(function(r){ return r.text(); }).then(function(text){
+    var json = text.replace(/^\/\*[^*]*\*\/\s*/,'').replace(/^[^(]*\(/,'').replace(/\);?\s*$/,'');
+    var gviz = JSON.parse(json);
+    var cols = gviz.table.cols.map(function(c){ return c.label; });
+    organicallyRows = (gviz.table.rows||[]).map(function(row){
+      var obj={};
+      row.c.forEach(function(cell,i){ obj[cols[i]] = cell ? (cell.f||cell.v||'') : ''; });
+      return obj;
+    }).filter(function(r){ return r['Ticket #'] || r['Invoice #']; });
+    renderDisposalAnalytics();
+  }).catch(function(e){ console.warn('Organically load failed', e); });
+}
+
+function toggleRecon() {
+  var body = document.getElementById('recon-body');
+  var tog = document.getElementById('recon-toggle');
+  if (body.style.display === 'none') {
+    body.style.display = 'block';
+    tog.textContent = '▲';
+    renderReconTable();
+  } else {
+    body.style.display = 'none';
+    tog.textContent = '▼';
+  }
+}
+
+function renderReconTable() {
+  var ticketSet = new Set(disposalRows.map(function(r){ return String(r['Receipt #']).trim(); }));
+  var html = organicallyRows.map(function(r){
+    var ticket = String(r['Ticket #']||'').trim();
+    var matched = ticket && ticketSet.has(ticket);
+    var status = ticket
+      ? (matched ? '<span style="color:#22c55e;font-weight:600">✅ Matched</span>' : '<span style="color:#f97316;font-weight:600">⚠️ No Match</span>')
+      : '<span style="color:#94a3b8">—</span>';
+    var amt = r['Amount'] ? '$'+parseFloat(r['Amount']).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
+    return '<tr><td>'+esc(r['Invoice #'])+'</td><td>'+esc(r['Date'])+'</td><td>'+esc(ticket)+'</td><td>'+esc(r['Truck'])+'</td><td>'+esc(r['Activity Type'])+'</td><td>'+amt+'</td><td>'+status+'</td></tr>';
+  }).join('');
+  document.getElementById('recon-table-body').innerHTML = html || '<tr><td colspan="7">No Organically data loaded.</td></tr>';
+  var matched = organicallyRows.filter(function(r){ return ticketSet.has(String(r['Ticket #']||'').trim()); }).length;
+  document.getElementById('recon-footer').textContent = organicallyRows.length + ' Organically line items — ' + matched + ' matched — ' + (organicallyRows.length - matched) + ' unmatched';
+}
+
+function renderDisposalAnalytics() {
+  var rows = dispFilteredRows();
+  // Stats
+  var totalYards = 0, totalLoads = rows.length;
+  rows.forEach(function(r){ totalYards += parseFloat(r['Yards'])||0; });
+  var avgYards = totalLoads ? (totalYards/totalLoads).toFixed(1) : 0;
+
+  // Organically total (filter by year)
+  var orgRows = dispYearFilter === 'all' ? organicallyRows : organicallyRows.filter(function(r){
+    return (r['Invoice Date']||r['Date']||'').includes(dispYearFilter);
   });
-  registerChart('chart-disp-dept', 'Receipts by Department', chartDispDept.config.type, chartDispDept.config.data, chartDispDept.config.options);
+  var orgTotal = 0;
+  orgRows.forEach(function(r){ orgTotal += parseFloat(r['Amount'])||0; });
+  var costPerYard = totalYards > 0 ? (orgTotal/totalYards).toFixed(2) : 0;
+
+  var fmt = function(n){ return n.toLocaleString('en-US'); };
+  var fmtD = function(n){ return '$'+parseFloat(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); };
+
+  document.getElementById('disp-yards').textContent = fmt(Math.round(totalYards));
+  document.getElementById('disp-count').textContent = fmt(totalLoads);
+  document.getElementById('disp-avg-yards').textContent = avgYards;
+  document.getElementById('disp-org-total').textContent = orgTotal > 0 ? fmtD(orgTotal) : '—';
+  document.getElementById('disp-cost-yard').textContent = costPerYard > 0 ? '$'+costPerYard : '—';
+
+  // --- Chart 1: Yards by Month (stacked bar) ---
+  var months = {};
+  rows.forEach(function(r){
+    var d = r['Date']||'';
+    var m = d.length>=7 ? d.substring(0,7) : null;
+    if (!m) return;
+    // Normalize MM/DD/YYYY -> YYYY-MM
+    if (m.indexOf('/')>-1) { var p=d.split('/'); if(p.length>=3) m=p[2]+'-'+p[0].padStart(2,'0'); }
+    if (!months[m]) months[m] = {mant:0, tree:0};
+    var dept = r['Department']||'';
+    var yds = parseFloat(r['Yards'])||0;
+    if (dept.includes('Mantenimiento')) months[m].mant += yds;
+    else months[m].tree += yds;
+  });
+  var mKeys = Object.keys(months).sort().slice(-12);
+  var ctx1 = document.getElementById('chart-disp-months').getContext('2d');
+  if (chartDispMonths) chartDispMonths.destroy();
+  chartDispMonths = new Chart(ctx1, {
+    type:'bar',
+    data:{ labels: mKeys,
+      datasets:[
+        { label:'Mantenimiento', data: mKeys.map(function(k){return months[k].mant;}), backgroundColor:'#3b82f6', borderRadius:4 },
+        { label:'Tree Trimming', data: mKeys.map(function(k){return months[k].tree;}), backgroundColor:'#22c55e', borderRadius:4 }
+      ]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins: CHART_DEFAULTS.plugins,
+      scales:{ x:{stacked:true,ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,.05)'}}, y:{stacked:true,ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,.05)'}} } }
+  });
+  registerChart('chart-disp-months','Yards by Month',chartDispMonths.config.type,chartDispMonths.config.data,chartDispMonths.config.options);
+
+  // --- Chart 2: Loads by Truck (horizontal bar) ---
+  var trucks = {};
+  rows.forEach(function(r){ var t=String(r['Truck']||'').trim()||'Unknown'; trucks[t]=(trucks[t]||0)+1; });
+  var topTrucks = Object.entries(trucks).sort(function(a,b){return b[1]-a[1];}).slice(0,15);
+  var ctx2 = document.getElementById('chart-disp-truck').getContext('2d');
+  if (chartDispTruck) chartDispTruck.destroy();
+  chartDispTruck = new Chart(ctx2, {
+    type:'bar',
+    data:{ labels: topTrucks.map(function(t){return t[0];}),
+      datasets:[{ label:'Loads', data: topTrucks.map(function(t){return t[1];}), backgroundColor:'#f97316', borderRadius:4 }]},
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins: CHART_DEFAULTS.plugins,
+      scales:{ x:{ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,.05)'}}, y:{ticks:{color:'#94a3b8'},grid:{display:false}} } }
+  });
+  registerChart('chart-disp-truck','Loads by Truck',chartDispTruck.config.type,chartDispTruck.config.data,chartDispTruck.config.options);
+
+  // --- Chart 3: Yards by Dept (doughnut) ---
+  var depts = {};
+  rows.forEach(function(r){ var d=r['Department']||'Other'; depts[d]=(depts[d]||0)+(parseFloat(r['Yards'])||0); });
+  var dKeys = Object.keys(depts); var COLORS=['#3b82f6','#22c55e','#f97316','#a855f7','#06b6d4'];
+  var ctx3 = document.getElementById('chart-disp-dept').getContext('2d');
+  if (chartDispDeptNew) chartDispDeptNew.destroy();
+  chartDispDeptNew = new Chart(ctx3, {
+    type:'doughnut',
+    data:{ labels: dKeys, datasets:[{ data: dKeys.map(function(k){return Math.round(depts[k]);}), backgroundColor: COLORS.slice(0,dKeys.length), borderWidth:0 }]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins: CHART_DEFAULTS.plugins }
+  });
+  registerChart('chart-disp-dept','Yards by Dept',chartDispDeptNew.config.type,chartDispDeptNew.config.data,chartDispDeptNew.config.options);
+
+  // --- Chart 4: Monthly Organically Cost ---
+  var orgByMonth = {};
+  orgRows.forEach(function(r){
+    var d = r['Date']||r['Invoice Date']||'';
+    var m = null;
+    if (d.indexOf('/')>-1) { var p=d.split('/'); if(p.length>=3) m=p[2].substring(0,4)+'-'+p[0].padStart(2,'0'); }
+    else if (d.length>=7) m=d.substring(0,7);
+    if (!m) return;
+    orgByMonth[m] = (orgByMonth[m]||0) + (parseFloat(r['Amount'])||0);
+  });
+  var omKeys = Object.keys(orgByMonth).sort().slice(-12);
+  var ctx4 = document.getElementById('chart-disp-org-cost').getContext('2d');
+  if (chartDispOrgCost) chartDispOrgCost.destroy();
+  chartDispOrgCost = new Chart(ctx4, {
+    type:'bar',
+    data:{ labels: omKeys,
+      datasets:[{ label:'$ Organically', data: omKeys.map(function(k){return orgByMonth[k];}), backgroundColor:'#a855f7', borderRadius:4 }]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins: CHART_DEFAULTS.plugins,
+      scales:{ x:{ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,.05)'}}, y:{ticks:{color:'#94a3b8',callback:function(v){return '$'+v.toLocaleString();}},grid:{color:'rgba(255,255,255,.05)'}} } }
+  });
+  registerChart('chart-disp-org-cost','Monthly Organically Cost',chartDispOrgCost.config.type,chartDispOrgCost.config.data,chartDispOrgCost.config.options);
+
+  // --- Epic HQ ---
+  var hqRows = rows.filter(function(r){ return (r['Client']||'').toUpperCase().includes('EPIC'); });
+  var hqYards = 0; hqRows.forEach(function(r){ hqYards += parseFloat(r['Yards'])||0; });
+  var hqCost = costPerYard > 0 ? (hqYards * parseFloat(costPerYard)) : 0;
+  document.getElementById('hq-loads').textContent = hqRows.length;
+  document.getElementById('hq-yards').textContent = Math.round(hqYards);
+  document.getElementById('hq-cost').textContent = hqCost > 0 ? fmtD(hqCost) : '—';
+  var hqHtml = hqRows.slice(0,50).map(function(r){
+    return '<tr><td>'+esc(r['Date'])+'</td><td>'+esc(r['Receipt #'])+'</td><td>'+esc(r['Yards'])+'</td><td>'+esc(r['Truck'])+'</td><td>'+esc(r['Employee'])+'</td><td>'+esc(r['Type']||r['Group']||'—')+'</td></tr>';
+  }).join('');
+  document.getElementById('hq-body').innerHTML = hqHtml || '<tr><td colspan="6" style="color:var(--muted);text-align:center;padding:20px">No Epic HQ receipts found</td></tr>';
+
+  // Update table
+  disposalFiltered = rows;
+  renderDisposalTable();
 }
 
 function renderDisposalTable() {
@@ -906,9 +1355,8 @@ function setFuelPeriod(p, el) {
 function fuelDateCutoff() {
   var now = new Date();
   if (fuelPeriod === 'today') return new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  if (fuelPeriod === 'mtd')  return new Date(now.getFullYear(), now.getMonth(), 1);
-  if (fuelPeriod === 'ytd')  return new Date(now.getFullYear(), 0, 1);
-  if (fuelPeriod === 'all')  return new Date(2020, 0, 1);
+  if (fuelPeriod === 'ytd') return new Date(now.getFullYear(), 0, 1);
+  if (fuelPeriod === 'all') return new Date(2020, 0, 1);
   var d = new Date(now); d.setDate(d.getDate() - parseInt(fuelPeriod)); return d;
 }
 
@@ -1010,7 +1458,6 @@ function renderFuelPage() {
 
   // Charts — delay so DOM is visible
   setTimeout(function(){
-    renderFuelLineChart(invRows);
     renderFuelBarChart(conRows, invRows);
     renderFuelDeptChart(conRows);
   }, 80);
@@ -1069,120 +1516,33 @@ function renderFuelInvoiceTable() {
   document.getElementById('fuel-invoice-footer').textContent = fuelInvoiceFiltered.length + ' invoices';
 }
 
-var chartFuelLine;
-
-function renderFuelLineChart(invRows) {
-  // Wave chart: fuel spend over time with smart granularity
-  var isToday = (fuelPeriod === 'today');
-  var isShort = (fuelPeriod === 7 || fuelPeriod === 30 || fuelPeriod === 'mtd');
-  var rows = invRows || fuelInvoiceRows;
-  var labels, values, titleText, chartType, bgColor;
-
-  if (isToday) {
-    // 7-day wave ending today
-    titleText = 'Fuel Spend — Last 7 Days'; chartType = 'line'; bgColor = 'rgba(168,85,247,.15)';
-    var sevenAgo = new Date(); sevenAgo.setDate(sevenAgo.getDate()-6);
-    sevenAgo = new Date(sevenAgo.getFullYear(), sevenAgo.getMonth(), sevenAgo.getDate());
-    var byD = {};
-    rows.forEach(function(r){
-      var d = parseLocalDate(r['Date']); if(isNaN(d)||d<sevenAgo) return;
-      var k = d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
-      byD[k]=(byD[k]||0)+(parseFloat(String(r['Amount ($)']).replace(/[$,]/g,''))||0);
-    });
-    labels=[]; values=[];
-    for(var i=6;i>=0;i--){ var d=new Date(); d.setDate(d.getDate()-i);
-      var k=d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
-      labels.push(k); values.push(byD[k]||0); }
-  } else if (isShort) {
-    // Daily buckets
-    titleText = 'Fuel Spend — Daily'; chartType = 'line'; bgColor = 'rgba(168,85,247,.15)';
-    var byD2 = {}; var cutoff = fuelDateCutoff();
-    rows.forEach(function(r){
-      var d = parseLocalDate(r['Date']); if(isNaN(d)||d<cutoff) return;
-      var k = d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
-      byD2[k]=(byD2[k]||0)+(parseFloat(String(r['Amount ($)']).replace(/[$,]/g,''))||0);
-    });
-    var sorted2 = Object.keys(byD2).sort(function(a,b){ return new Date(a)-new Date(b); });
-    labels=sorted2; values=sorted2.map(function(k){return byD2[k]||0;});
-  } else {
-    // Monthly buckets
-    titleText = fuelPeriod==='ytd'?'Fuel Spend — Monthly (This Year)':'Fuel Spend — Monthly (All Time)';
-    chartType = 'line'; bgColor = 'rgba(168,85,247,.15)';
-    var byM = {};
-    rows.forEach(function(r){ var m=r['Month']||''; if(!m) return;
-      byM[m]=(byM[m]||0)+(parseFloat(String(r['Amount ($)']).replace(/[$,]/g,''))||0); });
-    labels=Object.keys(byM).sort(); values=labels.map(function(k){return byM[k]||0;});
-  }
-
-  var titleEl = document.getElementById('fuel-line-title');
-  if(titleEl) titleEl.textContent = titleText;
-
-  var ctx = document.getElementById('chart-fuel-line').getContext('2d');
-  if(chartFuelLine) chartFuelLine.destroy();
-  chartFuelLine = new Chart(ctx, {
-    type: chartType,
-    data: { labels: labels, datasets:[{
-      label:'Fuel Spend ($)', data: values,
-      borderColor:'#a855f7', backgroundColor: bgColor,
-      tension:.4, fill:true, pointRadius:3, pointBackgroundColor:'#a855f7'
-    }]},
-    options:{ responsive:true, maintainAspectRatio:false,
-      scales:{
-        x:{ticks:{color:'#94a3b8',maxRotation:45},grid:{color:'rgba(255,255,255,.05)'}},
-        y:{ticks:{color:'#94a3b8',callback:function(v){return '$'+v.toLocaleString();}},grid:{color:'rgba(255,255,255,.05)'},beginAtZero:true}
-      }, plugins: CHART_DEFAULTS.plugins }
-  });
-  registerChart('chart-fuel-line', titleText, chartFuelLine.config.type, chartFuelLine.config.data, chartFuelLine.config.options);
-}
-
 function renderFuelBarChart(conRows, invRows) {
-  // Smart granularity: today/short → daily, long → monthly
-  var isShort = (fuelPeriod === 'today' || fuelPeriod === 7 || fuelPeriod === 30 || fuelPeriod === 'mtd');
+  // Build monthly from filtered rows
   var delivered={}, consumed={};
-
-  if (isShort) {
-    // Daily buckets
-    (invRows||fuelInvoiceRows).forEach(function(r){
-      var d = new Date(r['Date']); if (isNaN(d)) return;
-      var key = d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
-      delivered[key] = (delivered[key]||0) + (parseFloat(String(r['Gallons']).replace(/,/g,''))||0);
-    });
-    (conRows||fuelConsumptionRows).forEach(function(r){
-      var d = new Date(r['Date']); if (isNaN(d)) return;
-      var key = d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
-      consumed[key] = (consumed[key]||0) + (parseFloat(String(r['Gallons']).replace(/,/g,''))||0);
-    });
-  } else {
-    // Monthly buckets
-    (invRows||fuelInvoiceRows).forEach(function(r){
-      var m = r['Month']||'';
-      delivered[m] = (delivered[m]||0) + (parseFloat(String(r['Gallons']).replace(/,/g,''))||0);
-    });
-    (conRows||fuelConsumptionRows).forEach(function(r){
-      var m = r['Month']||'';
-      consumed[m] = (consumed[m]||0) + (parseFloat(String(r['Gallons']).replace(/,/g,''))||0);
-    });
-  }
-
-  var buckets = Object.keys(Object.assign({}, delivered, consumed)).sort();
-  var chartTitle = isShort ? 'Daily Delivered vs Consumed (gal)' : 'Monthly Delivered vs Consumed (gal)';
-  var barTitleEl = document.getElementById('fuel-bar-title');
-  if(barTitleEl) barTitleEl.textContent = chartTitle;
+  (invRows||fuelInvoiceRows).forEach(function(r){
+    var m = r['Month']||'';
+    delivered[m] = (delivered[m]||0) + (parseFloat(String(r['Gallons']).replace(/,/g,''))||0);
+  });
+  (conRows||fuelConsumptionRows).forEach(function(r){
+    var m = r['Month']||'';
+    consumed[m] = (consumed[m]||0) + (parseFloat(String(r['Gallons']).replace(/,/g,''))||0);
+  });
+  var months = Object.keys(Object.assign({}, delivered, consumed)).sort();
   var ctx = document.getElementById('chart-fuel-bar').getContext('2d');
   if (chartFuelBar) chartFuelBar.destroy();
   chartFuelBar = new Chart(ctx, {
     type: 'bar',
     data: {
-      labels: buckets,
+      labels: months,
       datasets: [
-        { label:'Delivered (gal)', data: buckets.map(function(k){return delivered[k]||0;}), backgroundColor:'#22c55e', borderRadius:4 },
-        { label:'Consumed (gal)', data: buckets.map(function(k){return consumed[k]||0;}), backgroundColor:'#3b82f6', borderRadius:4 }
+        { label:'Delivered (gal)', data: months.map(function(m){return delivered[m]||0;}), backgroundColor:'#22c55e', borderRadius:4 },
+        { label:'Consumed (gal)', data: months.map(function(m){return consumed[m]||0;}), backgroundColor:'#3b82f6', borderRadius:4 }
       ]
     },
     options: { responsive:true, maintainAspectRatio:false, plugins: CHART_DEFAULTS.plugins,
-      scales:{ x:{ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,.05)'}}, y:{ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,.05)'},beginAtZero:true} } }
+      scales:{ x:{ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,.05)'}}, y:{ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,.05)'}} } }
   });
-  registerChart('chart-fuel-bar', chartTitle, chartFuelBar.config.type, chartFuelBar.config.data, chartFuelBar.config.options);
+  registerChart('chart-fuel-bar', 'Monthly Delivered vs Consumed', chartFuelBar.config.type, chartFuelBar.config.data, chartFuelBar.config.options);
 }
 
 function renderFuelDeptChart(conRows) {
@@ -1207,51 +1567,66 @@ function renderFuelDeptChart(conRows) {
 function loadData() {
   setTableLoading();
 
-  var fetchUrl = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID +
-    '/gviz/tq?tqx=out:json&sheet=' + encodeURIComponent(SHEET_TAB);
-
-  fetch(fetchUrl)
-    .then(function(r) {
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.text();
-    })
-    .then(function(text) {
-      // Strip Google's JSONP wrapper (handles /*O_o*/ prefix)
-      var json = text.replace(/^\/\*[^*]*\*\/\s*/, '').replace(/^[^(]*\(/, '').replace(/\);?\s*$/, '');
-      var gviz = JSON.parse(json);
-      var cols = gviz.table.cols.map(function(c) { return c.label; });
-      var rows = (gviz.table.rows || []).map(function(row) {
-        var obj = {};
-        row.c.forEach(function(cell, i) {
-          obj[cols[i]] = cell ? (cell.f || cell.v || '') : '';
-        });
-        return obj;
-      }).filter(function(r) { return r['Date'] || r['Store'] || r['Amount']; });
-      allRows = rows.map(normalizeRow);
-      document.getElementById('last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString();
-      applyFilters();
-    })
-    .catch(function(err) {
-      setTableError(err.toString());
-    });
+  // Use Apps Script directly to bypass gviz cache (edits reflect immediately)
+  fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ action: 'getRows', sheetId: SHEET_ID, tabName: SHEET_TAB, startRow: 1 })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (!data.success && !data.ok) throw new Error(data.error || 'Script error');
+    var raw = data.rows;
+    if (!raw || raw.length < 2) { allRows = []; applyFilters(); return; }
+    var hdrs = raw[0].map(function(h) { return String(h || '').trim(); });
+    var rows = raw.slice(1).map(function(row, i) {
+      var obj = {};
+      hdrs.forEach(function(h, j) { obj[h] = (row[j] != null && row[j] !== '') ? row[j] : ''; });
+      return obj;
+    }).filter(function(r) { return r['Date'] || r['Store'] || r['Amount']; });
+    allRows = rows.map(function(r, i) { return normalizeRow(r, i); });
+    document.getElementById('last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString();
+    applyFilters();
+  })
+  .catch(function(err) {
+    // Fallback to gviz if Apps Script fails
+    var fetchUrl = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID +
+      '/gviz/tq?tqx=out:json&sheet=' + encodeURIComponent(SHEET_TAB) + '&_t=' + Date.now();
+    fetch(fetchUrl)
+      .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+      .then(function(text) {
+        var json = text.replace(/^\/\*[^*]*\*\/\s*/, '').replace(/^[^(]*\(/, '').replace(/\);?\s*$/, '');
+        var gviz = JSON.parse(json);
+        var cols = gviz.table.cols.map(function(c) { return c.label; });
+        var rows = (gviz.table.rows || []).map(function(row) {
+          var obj = {};
+          row.c.forEach(function(cell, i) { obj[cols[i]] = cell ? (cell.f || cell.v || '') : ''; });
+          return obj;
+        }).filter(function(r) { return r['Date'] || r['Store'] || r['Amount']; });
+        allRows = rows.map(function(r, i) { return normalizeRow(r, i); });
+        document.getElementById('last-updated').textContent = 'Updated (cached) ' + new Date().toLocaleTimeString();
+        applyFilters();
+      })
+      .catch(function(err2) { setTableError(err2.toString()); });
+  });
 }
 
 function parseLocalDate(s) {
-  // Force ISO dates (YYYY-MM-DD) to parse as LOCAL time, not UTC
-  // Otherwise "2026-04-26" parses as Apr 25 8PM EDT and breaks Today filter
+  // ISO dates (YYYY-MM-DD) parse as UTC midnight → wrong local day. Force local.
   if (!s) return new Date(0);
   s = String(s).trim();
   var iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (iso) return new Date(parseInt(iso[1]), parseInt(iso[2])-1, parseInt(iso[3]));
-  var d = new Date(s); // M/D/YYYY and other formats are already local
+  var d = new Date(s);
   return isNaN(d) ? new Date(0) : d;
 }
 
-function normalizeRow(r) {
+function normalizeRow(r, i) {
   var amt = parseFloat(String(r['Amount'] || '').replace(/[$,]/g, '')) || 0;
   return Object.assign({}, r, {
     _amount: amt,
-    _date: parseLocalDate(r['Date'])
+    _date: parseLocalDate(r['Date']),
+    _rowIndex: i
   });
 }
 
@@ -1272,21 +1647,32 @@ function getDayCutoff(days) {
   return d;
 }
 
+function setAmtFilter() {
+  var minVal = parseFloat(document.getElementById('amt-min').value);
+  var maxVal = parseFloat(document.getElementById('amt-max').value);
+  amtMin = isNaN(minVal) ? 0 : minVal;
+  amtMax = isNaN(maxVal) ? Infinity : maxVal;
+  applyFilters();
+}
+
 function applyFilters() {
   var cutoff = getDayCutoff(currentDays);
   var search = document.getElementById('search-box').value.toLowerCase();
   var now = new Date();
-  // For 'today': also cap at end of today so future-dated rows don't leak in
+  // Cap 'today' at end of today so future-dated rows don't leak through
   var todayCeiling = currentDays === 'today'
     ? new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
     : null;
 
   filteredRows = allRows.filter(function(r) {
     if (r._date < cutoff) return false;
-    if (todayCeiling && r._date >= todayCeiling) return false; // block future dates
+    if (todayCeiling && r._date >= todayCeiling) return false;
     if (currentDept !== 'All' && r['Department'] !== currentDept) return false;
+    if (r._amount < amtMin) return false;
+    if (r._amount > amtMax) return false;
     if (search) {
-      var haystack = [r['Store'], r['Department'], r['Employee'], r['Items'], r['Receipt#']].join(' ').toLowerCase();
+      var amtStr = r._amount > 0 ? String(r._amount.toFixed(2)) : '';
+      var haystack = [r['Store'], r['Department'], r['Employee'], r['Items'], r['Receipt#'], r['Job/Cliente'], r['Category'], r['Payment'], amtStr].join(' ').toLowerCase();
       if (!haystack.includes(search)) return false;
     }
     return true;
@@ -1358,12 +1744,9 @@ function renderCharts() {
 function renderLineChart() {
   var ctx = document.getElementById('chart-line').getContext('2d');
   var isToday = (currentDays === 'today');
-  var isShortRange = (typeof currentDays === 'number' && currentDays <= 14) || currentDays === 'today';
-
   var labels, values, chartType, datasetLabel, bgColor, titleText;
 
   if (isToday) {
-    // Detect if receipts have real timestamps or just date (hour 0 = no time data)
     var todayStr = new Date().toDateString();
     var todayRows = filteredRows.filter(function(r){
       return r._date && r._date.getFullYear() > 2000 && r._date.toDateString() === todayStr;
@@ -1371,46 +1754,37 @@ function renderLineChart() {
     var hasRealTimes = todayRows.some(function(r){ return r._date.getHours() > 0; });
 
     if (hasRealTimes) {
-      // ── HOURLY (receipts have real timestamps) ──────────────────────
+      // Hourly bars
       titleText = 'Spending — Hourly (Today)';
       chartType = 'bar'; datasetLabel = 'Spend by Hour ($)'; bgColor = 'rgba(34,197,94,.75)';
       var byHour = {};
-      todayRows.forEach(function(r){ var h = r._date.getHours(); byHour[h] = (byHour[h]||0) + r._amount; });
-      var now = new Date(); var startH = 6; var endH = Math.min(Math.max(now.getHours()+1, startH+1), 22);
-      labels = []; values = [];
-      for (var h = startH; h <= endH; h++) {
-        labels.push(h===12?'12 PM':h>12?(h-12)+' PM':h+' AM');
-        values.push(byHour[h] || 0);
-      }
+      todayRows.forEach(function(r){ var h = r._date.getHours(); byHour[h]=(byHour[h]||0)+r._amount; });
+      var now = new Date(); var startH=6; var endH=Math.min(Math.max(now.getHours()+1,startH+1),22);
+      labels=[]; values=[];
+      for(var h=startH;h<=endH;h++){ labels.push(h===12?'12 PM':h>12?(h-12)+' PM':h+' AM'); values.push(byHour[h]||0); }
     } else {
-      // ── No timestamps → 7-day trend line ending at today ─────────────
+      // No timestamps → 7-day trend wave ending at today
       titleText = 'Spending — Last 7 Days';
       chartType = 'line'; datasetLabel = 'Daily Spend ($)'; bgColor = 'rgba(34,197,94,.1)';
-      var sevenAgo = new Date(); sevenAgo.setDate(sevenAgo.getDate() - 6);
+      var sevenAgo = new Date(); sevenAgo.setDate(sevenAgo.getDate()-6);
       sevenAgo = new Date(sevenAgo.getFullYear(), sevenAgo.getMonth(), sevenAgo.getDate());
       var byDate7 = {};
-      // Use allRows for full 7-day picture regardless of dept filter
-      allRows.forEach(function(r) {
-        if (r._date >= sevenAgo) {
+      filteredRows.forEach(function(r){
+        if(r._date >= sevenAgo){
           var key = r._date.toLocaleDateString('en-US',{month:'short',day:'numeric'});
           byDate7[key] = (byDate7[key]||0) + r._amount;
         }
       });
-      // Build sorted 7-day label list (fill gaps with 0)
-      labels = []; values = [];
-      for (var i = 6; i >= 0; i--) {
-        var d = new Date(); d.setDate(d.getDate() - i);
-        var k = d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
-        labels.push(k); values.push(byDate7[k] || 0);
+      labels=[]; values=[];
+      for(var i=6;i>=0;i--){
+        var d=new Date(); d.setDate(d.getDate()-i);
+        var k=d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+        labels.push(k); values.push(byDate7[k]||0);
       }
     }
   } else {
-    // ── DAILY view ─────────────────────────────────────────────────
-    titleText   = 'Spending Over Time';
-    chartType   = 'line';
-    datasetLabel = 'Daily Spend ($)';
-    bgColor     = 'rgba(34,197,94,.1)';
-
+    titleText = 'Spending Over Time';
+    chartType = 'line'; datasetLabel = 'Daily Spend ($)'; bgColor = 'rgba(34,197,94,.1)';
     var byDate = {};
     filteredRows.forEach(function(r) {
       var key = r._date.toLocaleDateString('en-US', { month:'short', day:'numeric' });
@@ -1424,10 +1798,6 @@ function renderLineChart() {
     labels = uniqueKeys;
     values = uniqueKeys.map(function(k){ return byDate[k] || 0; });
   }
-
-  // Update chart title text in DOM
-  var titleEl = document.querySelector('#receipts-page .chart-card.wide .chart-title');
-  if (titleEl) titleEl.textContent = titleText;
 
   if (chartLine) chartLine.destroy();
   chartLine = new Chart(ctx, {
@@ -1453,13 +1823,7 @@ function renderLineChart() {
         x: { ticks: { color:'#94a3b8', font:{family:'DM Sans'}, maxRotation: isToday ? 0 : 45 }, grid:{color:'rgba(255,255,255,.05)'} },
         y: { ticks: { color:'#94a3b8', font:{family:'DM Sans'}, callback: function(v){ return '$'+v.toLocaleString(); }}, grid:{color:'rgba(255,255,255,.05)'}, beginAtZero: true }
       },
-      plugins: Object.assign({}, CHART_DEFAULTS.plugins, {
-        tooltip: {
-          callbacks: {
-            label: function(ctx) { return ' $' + fmt(ctx.parsed.y); }
-          }
-        }
-      })
+      plugins: CHART_DEFAULTS.plugins
     }
   });
   registerChart('chart-line', titleText, chartLine.config.type, chartLine.config.data, chartLine.config.options);
@@ -1584,8 +1948,25 @@ function renderTable() {
     var photo    = r['Photo Link'] ? '<a href="' + esc(r['Photo Link']) + '" target="_blank">📷</a>' : '—';
     var status   = r['Status'] || 'Pending';
     var statusClass = status === 'Approved' ? 'badge-green' : status === 'Pending Review' ? 'badge-orange' : 'badge-muted';
+    var sheetRow = r._rowIndex + 2; // gviz is 0-based, sheet has header on row 1
+    var statusCell = '<select class="status-select badge ' + statusClass + '" ' +
+      'data-sheet-row="' + sheetRow + '" ' +
+      'onchange="updateStatus(this)" ' +
+      'style="cursor:pointer;border:none;background:transparent;font-size:11px;font-weight:600;font-family:inherit;padding:2px 4px;border-radius:6px">' +
+      ['Approved','Pending Review','Needs Attention','Needs Review','Duplicate'].map(function(s) {
+        return '<option value="' + s + '"' + (s === status ? ' selected' : '') + '>' + s + '</option>';
+      }).join('') +
+      '</select>';
     var deptColor = DEPT_COLORS[r['Department']] || '#64748b';
-    var deptChip  = '<span class="dept-chip" style="background:' + deptColor + '22;color:' + deptColor + '">' + dept + '</span>';
+    var deptOptions = Object.keys(DEPT_COLORS).filter(function(d){ return d !== 'Unknown'; });
+    var deptChip = '<select class="dept-select" data-sheet-row="' + sheetRow + '" data-original="' + dept + '" '
+      + 'onchange="updateDept(this)" '
+      + 'style="background:' + deptColor + '22;color:' + deptColor + ';border:1px solid ' + deptColor + '44;'
+      + 'border-radius:20px;padding:2px 8px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;">'
+      + deptOptions.map(function(d){
+          return '<option value="'+d+'"'+(d===dept?' selected':'')+'>'+d+'</option>';
+        }).join('')
+      + '</select>';
     var dateStr   = r._date && r._date.getFullYear() > 2000
       ? r._date.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'2-digit'})
       : esc(r['Date'] || '');
@@ -1604,7 +1985,7 @@ function renderTable() {
       '<td>' + pay + '</td>' +
       '<td>' + rnum + '</td>' +
       '<td style="text-align:center">' + photo + '</td>' +
-      '<td><span class="badge ' + statusClass + '">' + esc(status) + '</span></td>' +
+      '<td>' + statusCell + '</td>' +
       '</tr>';
   }).join('');
 
@@ -1616,6 +1997,146 @@ function esc(str) {
   return String(str)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;')
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─── Dept Inline Edit ─────────────────────────────────────────────────────────
+function updateDept(selectEl) {
+  var newDept    = selectEl.value;
+  var oldDept    = selectEl.getAttribute('data-original');
+  var sheetRow   = parseInt(selectEl.getAttribute('data-sheet-row'), 10);
+  if (newDept === oldDept) return;
+
+  // Update color optimistically
+  var c = DEPT_COLORS[newDept] || '#64748b';
+  selectEl.style.background = c + '22';
+  selectEl.style.color = c;
+  selectEl.style.borderColor = c + '44';
+  selectEl.setAttribute('data-original', newDept);
+
+  // Update allRows in memory
+  allRows.forEach(function(r) { if (r._rowIndex + 2 === sheetRow) r['Department'] = newDept; });
+
+  // Log the correction
+  var storeLabel = '';
+  var dateLabel  = '';
+  allRows.forEach(function(r) {
+    if (r._rowIndex + 2 === sheetRow) {
+      storeLabel = r['Store'] || '';
+      dateLabel  = r['Date']  || '';
+    }
+  });
+  logCorrection('Department', storeLabel, dateLabel, oldDept, newDept, sheetRow);
+
+  // Push to sheet
+  fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ action: 'updateCell', sheetId: SHEET_ID, row: sheetRow, col: DEPT_COL, value: newDept })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(resp){ if (!resp.success) alert('Dept update failed: ' + (resp.error||'?')); })
+  .catch(function(err){ alert('Could not reach Apps Script: ' + err); });
+}
+
+// ─── Correction Logger ──────────────────────────────────────────────────────
+function logCorrection(field, store, date, oldVal, newVal, sheetRow) {
+  var entry = {
+    time:  new Date().toLocaleTimeString(),
+    field: field,
+    store: store,
+    date:  date,
+    from:  oldVal,
+    to:    newVal,
+    row:   sheetRow
+  };
+  correctionLog.unshift(entry); // newest first
+
+  // Also append to Google Sheet "Corrections Log" tab
+  var ts = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
+  fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({
+      action: 'appendRow',
+      sheetId: SHEET_ID,
+      sheetName: CORRECTIONS_LOG_TAB,
+      row: [ts, field, store, date, oldVal, newVal]
+    })
+  }).catch(function(){}) // best-effort, don't block UI
+}
+
+function renderCorrectionsPage() {
+  var total  = correctionLog.length;
+  var depts  = correctionLog.filter(function(e){ return e.field === 'Department'; }).length;
+  var stats  = correctionLog.filter(function(e){ return e.field === 'Status'; }).length;
+
+  document.getElementById('corr-total').textContent  = total;
+  document.getElementById('corr-dept').textContent   = depts;
+  document.getElementById('corr-status').textContent = stats;
+  document.getElementById('corr-footer').textContent = total + ' correction' + (total !== 1 ? 's' : '');
+
+  var tbody = document.getElementById('corr-body');
+  if (!total) {
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty-msg">No corrections yet this session.</div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = correctionLog.map(function(e) {
+    return '<tr>'
+      + '<td style="color:var(--muted);font-size:12px">' + esc(e.time) + '</td>'
+      + '<td><span style="background:#3b82f622;color:#3b82f6;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700">' + esc(e.field) + '</span></td>'
+      + '<td><strong>' + esc(e.store) + '</strong></td>'
+      + '<td style="color:var(--muted);font-size:12px">' + esc(e.date) + '</td>'
+      + '<td style="color:#ef4444">' + esc(e.from) + '</td>'
+      + '<td style="color:#22c55e">' + esc(e.to) + '</td>'
+      + '</tr>';
+  }).join('');
+}
+
+// ─── Status Inline Edit ───────────────────────────────────────────────────────
+function updateStatus(selectEl) {
+  var newStatus = selectEl.value;
+  var sheetRow  = parseInt(selectEl.getAttribute('data-sheet-row'), 10);
+
+  // Optimistic UI: update color immediately
+  selectEl.className = 'status-select badge ' +
+    (newStatus === 'Approved' ? 'badge-green' : newStatus === 'Pending Review' ? 'badge-orange' : 'badge-muted');
+
+  // Also update the in-memory allRows so filter re-renders are consistent
+  var oldStatus = '';
+  var storeLabel = '', dateLabel = '';
+  allRows.forEach(function(r) {
+    if (r._rowIndex + 2 === sheetRow) {
+      oldStatus  = r['Status'] || '';
+      storeLabel = r['Store']  || '';
+      dateLabel  = r['Date']   || '';
+      r['Status'] = newStatus;
+    }
+  });
+  if (oldStatus !== newStatus) logCorrection('Status', storeLabel, dateLabel, oldStatus, newStatus, sheetRow);
+
+  // POST to Apps Script
+  fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({
+      action: 'updateCell',
+      sheetId: SHEET_ID,
+      row: sheetRow,
+      col: STATUS_COL,
+      value: newStatus
+    })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(resp) {
+    if (!resp.success) {
+      console.warn('Status update failed:', resp.error);
+      alert('Could not save status: ' + (resp.error || 'unknown error'));
+    }
+  })
+  .catch(function(err) {
+    console.warn('Status update error:', err);
+    alert('Could not reach Apps Script: ' + err);
+  });
 }
 
 // ─── Loading / Error States ───────────────────────────────────────────────────
