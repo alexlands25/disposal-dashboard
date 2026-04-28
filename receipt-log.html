@@ -529,7 +529,7 @@
       <div class="logo">🧾</div>
       <div class="header-title">
         <h1>Epic Receipt Log</h1>
-        <p>Operational Expense Tracking — Epic Landscaping &nbsp;<span style="background:rgba(34,197,94,.15);color:#22c55e;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.04em">v3.0.2</span></p>
+        <p>Operational Expense Tracking — Epic Landscaping &nbsp;<span style="background:rgba(34,197,94,.15);color:#22c55e;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.04em">v3.0.3</span></p>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:10px">
@@ -821,7 +821,7 @@
       <div class="chart-wrap"><canvas id="chart-disp-dept"></canvas></div>
     </div>
     <div class="chart-card wide" style="grid-column:span 2" onclick="openChartModal('chart-disp-org-cost','Monthly Organically Cost')">
-      <div class="chart-title">💰 Monthly Cost — Organically (los tomates)</div>
+      <div class="chart-title">💰 Monthly Cost (Organically) vs 🏠 HQ Yards — curved combo</div>
       <div class="chart-wrap"><canvas id="chart-disp-org-cost"></canvas></div>
     </div>
   </div>
@@ -2145,17 +2145,39 @@ function renderDisposalAnalytics() {
     if (!m) return;
     orgByMonth[m] = (orgByMonth[m]||0) + (parseFloat(r['Amount'])||0);
   });
-  var omKeys = Object.keys(orgByMonth).sort().slice(-12);
+  // Build Epic HQ monthly yards for overlay
+  var hqByMonth = {};
+  disposalRows.forEach(function(r){
+    var isHQ = r['Type']==='internal_form' || (r['Client']||'').toUpperCase().includes('EPIC');
+    if (!isHQ) return;
+    var d = r['Date']||r['Processed Date']||'';
+    var m = d.slice(0,7); if (!m) return;
+    hqByMonth[m] = (hqByMonth[m]||0) + (parseFloat(r['Yards'])||0);
+  });
+  // Union of all months from both datasets, last 12
+  var allMonths = Array.from(new Set(Object.keys(orgByMonth).concat(Object.keys(hqByMonth)))).sort().slice(-12);
   var ctx4 = document.getElementById('chart-disp-org-cost').getContext('2d');
   if (chartDispOrgCost) chartDispOrgCost.destroy();
   chartDispOrgCost = new Chart(ctx4, {
-    type:'bar',
-    data:{ labels: omKeys,
-      datasets:[{ label:'$ Organically', data: omKeys.map(function(k){return orgByMonth[k];}), backgroundColor:'#a855f7', borderRadius:4 }]},
-    options:{ responsive:true, maintainAspectRatio:false, plugins: CHART_DEFAULTS.plugins,
-      scales:{ x:{ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,.05)'}}, y:{ticks:{color:'#94a3b8',callback:function(v){return '$'+v.toLocaleString();}},grid:{color:'rgba(255,255,255,.05)'}} } }
+    type:'line',
+    data:{ labels: allMonths,
+      datasets:[
+        { label:'$ Organically (Los Tomates)', data: allMonths.map(function(k){return orgByMonth[k]||0;}),
+          borderColor:'#a855f7', backgroundColor:'rgba(168,85,247,.12)', fill:true,
+          tension:0.4, pointRadius:4, pointHoverRadius:6, borderWidth:2, yAxisID:'y' },
+        { label:'HQ Yards (Epic Dump)', data: allMonths.map(function(k){return hqByMonth[k]||0;}),
+          borderColor:'#fbbf24', backgroundColor:'rgba(251,191,36,.08)', fill:true,
+          tension:0.4, pointRadius:4, pointHoverRadius:6, borderWidth:2, borderDash:[5,3], yAxisID:'y2' }
+      ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:true, labels:{color:'#94a3b8',font:{family:'DM Sans',size:11},boxWidth:12}}, tooltip:{mode:'index',intersect:false} },
+      scales:{
+        x:{ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,.05)'}},
+        y:{position:'left', ticks:{color:'#a855f7',callback:function(v){return '$'+v.toLocaleString();}}, grid:{color:'rgba(255,255,255,.05)'}},
+        y2:{position:'right', ticks:{color:'#fbbf24',callback:function(v){return v+' yds';}}, grid:{drawOnChartArea:false}}
+      } }
   });
-  registerChart('chart-disp-org-cost','Monthly Organically Cost',chartDispOrgCost.config.type,chartDispOrgCost.config.data,chartDispOrgCost.config.options);
+  registerChart('chart-disp-org-cost','Monthly Cost vs HQ Yards',chartDispOrgCost.config.type,chartDispOrgCost.config.data,chartDispOrgCost.config.options);
 
   // --- Epic HQ --- search ALL disposal rows (internal_form excluded from main stats)
   hqRows = disposalRows.filter(function(r){
