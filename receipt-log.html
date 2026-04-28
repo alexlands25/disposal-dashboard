@@ -529,7 +529,7 @@
       <div class="logo">🧾</div>
       <div class="header-title">
         <h1>Epic Receipt Log</h1>
-        <p>Operational Expense Tracking — Epic Landscaping &nbsp;<span style="background:rgba(34,197,94,.15);color:#22c55e;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.04em">v3.1.2</span></p>
+        <p>Operational Expense Tracking — Epic Landscaping &nbsp;<span style="background:rgba(34,197,94,.15);color:#22c55e;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.04em">v3.1.3</span></p>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:10px">
@@ -1977,6 +1977,8 @@ function dispFilteredRows() {
   return disposalRows.filter(function(r) {
     var grp = r['Group'] || r['Department'] || '';
     var grpOk = dispGroupFilter === 'all' || grp === dispGroupFilter;
+    var override = r['TypeOverride'] || '';
+    if (override === 'receipt') return dispDateOk(r) && grpOk; // user said it's Organically
     var notHQ = r['Type'] !== 'internal_form' && !(r['Client']||'').toUpperCase().includes('EPIC');
     return dispDateOk(r) && grpOk && notHQ;
   });
@@ -2233,7 +2235,9 @@ function renderDisposalAnalytics() {
   hqRows = disposalRows.filter(function(r){
     var grp = r['Group'] || r['Department'] || '';
     var grpOk = dispGroupFilter === 'all' || grp === dispGroupFilter;
-    var isHQ = r['Type']==='internal_form' || (r['Client']||'').toUpperCase().includes('EPIC');
+    var override = r['TypeOverride'] || '';
+    if (override === 'receipt') return false; // user corrected to Organically
+    var isHQ = override === 'internal_form' || r['Type']==='internal_form' || (r['Client']||'').toUpperCase().includes('EPIC');
     return isHQ && dispDateOk(r) && grpOk;
   });
   var hqYards = 0; hqRows.forEach(function(r){ hqYards += parseFloat(r['Yards'])||0; });
@@ -2253,7 +2257,7 @@ function renderDisposalAnalytics() {
     var tColor = t==='receipt' ? '#a855f7' : '#fbbf24';
     var tBg   = t==='receipt' ? 'rgba(168,85,247,.15)' : 'rgba(251,191,36,.15)';
     var rn = esc(r['Receipt #']);
-    var typeBtn = '<button data-type="'+t+'" onclick="flipRowType(\'' + rn + '\',this.getAttribute(\'data-type\'),this)" '
+    var typeBtn = '<button data-type="'+t+'" data-receipt="'+rn+'" onclick="flipRowType(this)" '
       + 'style="background:'+tBg+';color:'+tColor+';border:none;border-radius:4px;padding:2px 7px;font-size:10px;cursor:pointer;font-weight:600">'+tLabel+'</button>';
     return '<tr>'
       +'<td>'+esc(r['Date'])+'</td>'
@@ -2323,10 +2327,14 @@ function renderDisposalCharts() {
 var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxlQ9_5ww_Dq-675HCvORrXvbOYmztDs8pO8ZMm0FrlcMsTjbzLHnVY22a1oBYRb8kxYA/exec';
 var CONSOLIDATED_SHEET_ID = '1uvwHpRUYOVki3EG9WGbtX4Em8vM1EPw6nM0DCEOTykc';
 
-function flipRowType(receiptNum, currentType, btn) {
+function flipRowType(btn) {
+  var receiptNum = btn.getAttribute('data-receipt');
+  var currentType = btn.getAttribute('data-type');
   var newType = (currentType === 'internal_form') ? 'receipt' : 'internal_form';
-  var label = (newType === 'receipt') ? '📝 Organically' : '🏠 Epic HQ';
-  btn.textContent = '...';
+  var destName = (newType === 'receipt') ? 'Organically (Los Tomates)' : 'Epic HQ Disposal';
+  var srcName  = (newType === 'receipt') ? 'Epic HQ' : 'Organically';
+  if (!confirm('Move "' + receiptNum + '" from ' + srcName + ' \u2192 ' + destName + '?\n\nThis updates the sheet immediately.')) return;
+  btn.textContent = '⏳...';
   btn.disabled = true;
   fetch(APPS_SCRIPT_URL, {
     method:'POST', headers:{'Content-Type':'application/json'},
@@ -2334,18 +2342,17 @@ function flipRowType(receiptNum, currentType, btn) {
       action:'updateCell', sheetId: CONSOLIDATED_SHEET_ID, sheetName:'Disposal',
       lookupCol:'C', lookupVal: receiptNum, updateCol:'M', updateVal: newType
     })
-  }).then(function(r){ return r.json(); }).then(function(res){
-    // Update in-memory data
+  }).then(function(r){ return r.json(); }).then(function(){
     disposalRows.forEach(function(r){
       if(String(r['Receipt #']) === String(receiptNum)) r['TypeOverride'] = newType;
     });
-    btn.textContent = label;
-    btn.disabled = false;
-    btn.setAttribute('data-type', newType);
-    btn.style.background = newType==='receipt' ? 'rgba(168,85,247,.2)' : 'rgba(251,191,36,.2)';
-    btn.style.color = newType==='receipt' ? '#a855f7' : '#fbbf24';
     renderDisposalAnalytics();
-  }).catch(function(){ btn.textContent = '❌ Error'; btn.disabled = false; });
+  }).catch(function(e){
+    console.error('flipRowType error',e);
+    alert('❌ Could not save. Check connection and try again.');
+    btn.disabled = false;
+    btn.textContent = currentType==='internal_form' ? '🏠 Epic HQ' : '📝 Organically';
+  });
 }
 
 function renderDisposalTable() {
@@ -2357,7 +2364,7 @@ function renderDisposalTable() {
     var tColor = t==='internal_form' ? '#fbbf24' : '#a855f7';
     var tBg = t==='internal_form' ? 'rgba(251,191,36,.15)' : 'rgba(168,85,247,.15)';
     var rn = esc(r['Receipt #']);
-    var typeBtn = '<button data-type="'+t+'" onclick="flipRowType(\'' + rn + '\',this.getAttribute(\'data-type\'),this)" '
+    var typeBtn = '<button data-type="'+t+'" data-receipt="'+rn+'" onclick="flipRowType(this)" '
       + 'style="background:'+tBg+';color:'+tColor+';border:none;border-radius:4px;padding:2px 7px;font-size:10px;cursor:pointer;font-weight:600">'+tLabel+'</button>';
     return '<tr><td>'+esc(r['Date'])+'</td><td>'+esc(r['Department'])+'</td><td style="font-size:11px">'+rn+'</td><td>'+esc(r['Client'])+'</td><td>'+esc(r['Yards'])+'</td><td>'+esc(r['Truck'])+'</td><td>'+esc(r['Employee'])+'</td><td>'+amt+'</td><td>'+photo+'</td><td>'+typeBtn+'</td></tr>';
   }).join('');
