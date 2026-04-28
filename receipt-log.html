@@ -935,6 +935,32 @@
   <div id="amex-transactions" style="display:none">
     <div class="amex-card">
       <h3>📋 Transaction Ledger</h3>
+      <!-- Bulk Reclassify -->
+      <div style="background:rgba(77,150,255,.07);border:1px solid rgba(77,150,255,.2);border-radius:8px;padding:12px 14px;margin-bottom:14px">
+        <div style="font-size:12px;font-weight:700;color:#4d96ff;margin-bottom:8px">⚡ Bulk Reclassify</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <input id="amex-bulk-merchant" type="text" placeholder="Merchant keyword (e.g. Thumbtack)" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:12px;flex:1;min-width:140px" />
+          <select id="amex-bulk-dept" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:12px">
+            <option value="">-- Assign Dept --</option>
+            <option>Marketing</option>
+            <option>HQ / Office</option>
+            <option>AI & Technology</option>
+            <option>Lawn Maintenance</option>
+            <option>Irrigation</option>
+            <option>Fleet</option>
+            <option>Operations</option>
+            <option>Shared</option>
+          </select>
+          <select id="amex-bulk-type" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:12px">
+            <option value="">-- Set Type --</option>
+            <option value="Business">Business</option>
+            <option value="Owner/Personal">Owner/Personal</option>
+            <option value="Owner/Family">Owner/Family</option>
+          </select>
+          <button onclick="bulkReclassify()" style="background:#4d96ff;color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">⚡ Apply to All</button>
+        </div>
+        <div id="amex-bulk-preview" style="font-size:11px;color:var(--muted);margin-top:6px"></div>
+      </div>
       <div class="amex-filter-row">
         <input id="amex-search" type="text" placeholder="Search merchant, cardholder…" oninput="renderAmexTable()" />
         <select id="amex-filter-type" onchange="renderAmexTable()">
@@ -1428,7 +1454,7 @@ function populateAmexFilters() {
 // ─── AMEX Classify & Split ─────────────────────────────────────────────
 var EPIC_DEPTS = ['Lawn Maintenance','Irrigation','Tree Trimming','Pest Control',
   'Fleet','Holiday Lights','Grupo Anibal','Operations','Lighting','Grupo Ronald',
-  'HQ / Office','AI & Technology','Shared'];
+  'HQ / Office','AI & Technology','Marketing','Shared'];
 
 var amexActiveRowIndex = -1; // index into current filtered array
 var amexFilteredCache = []; // last rendered filtered rows
@@ -1577,6 +1603,31 @@ function attachSwipeListeners(tbody) {
       }
     }, {passive: true});
   });
+}
+
+function bulkReclassify() {
+  var keyword = (document.getElementById('amex-bulk-merchant').value||'').trim().toLowerCase();
+  var dept    = document.getElementById('amex-bulk-dept').value;
+  var type    = document.getElementById('amex-bulk-type').value;
+  var preview = document.getElementById('amex-bulk-preview');
+  if (!keyword) { preview.textContent = '⚠️ Enter a merchant keyword first.'; preview.style.color='#ff6b6b'; return; }
+  if (!dept && !type) { preview.textContent = '⚠️ Select at least a dept or type.'; preview.style.color='#ff6b6b'; return; }
+  var matches = amexRows.filter(function(r){
+    return r['Amount'] > 0 && ((r['Merchant']||'')+(r['Description']||'')).toLowerCase().indexOf(keyword) !== -1;
+  });
+  if (!matches.length) { preview.textContent = 'No transactions match "'+keyword+'".'; preview.style.color='#ff6b6b'; return; }
+  if (!confirm('Reclassify '+matches.length+' transactions matching "'+keyword+'"?\n'+(dept?'Dept → '+dept:'')+(type?' | Type → '+type:''))) return;
+  matches.forEach(function(r){
+    if (dept) { r['Division'] = dept; r['_dept'] = dept; }
+    if (type) { r['Type'] = type; }
+    r['Status'] = 'Reviewed'; r['_status'] = 'Reviewed';
+    saveAmexRow(r, dept||r['Division'], 'Reviewed');
+  });
+  preview.style.color='#22c55e';
+  preview.textContent = '✓ '+matches.length+' transactions updated — '+(dept||'')+(type?' | '+type:'');
+  renderAmexTable();
+  // Also re-render overview to reflect new classifications
+  if (amexCurrentSub === 'overview') renderAmexOverview();
 }
 
 function markPersonalFromRow(idx) {
