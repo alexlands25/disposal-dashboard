@@ -246,7 +246,7 @@
       padding: 20px;
     }
     .card-label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 10px; }
-    .card-value { font-size: 28px; font-weight: 700; line-height: 1; }
+    .card-value { font-size: 28px; font-weight: 700; line-height: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; display: block; }
     .card-sub   { font-size: 12px; color: var(--muted); margin-top: 6px; }
     .card-value.green  { color: var(--green); }
     .card-value.blue   { color: var(--blue); }
@@ -529,7 +529,7 @@
       <div class="logo">🧾</div>
       <div class="header-title">
         <h1>Epic Receipt Log</h1>
-        <p>Operational Expense Tracking — Epic Landscaping &nbsp;<span style="background:rgba(34,197,94,.15);color:#22c55e;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.04em">v3.0.3</span></p>
+        <p>Operational Expense Tracking — Epic Landscaping &nbsp;<span style="background:rgba(34,197,94,.15);color:#22c55e;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.04em">v3.0.4</span></p>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:10px">
@@ -794,12 +794,13 @@
 
   <!-- Summary Stats -->
   <div class="fuel-cards" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin-bottom:24px">
-    <div class="card"><div class="card-label">Total Yards</div><div class="card-value green" id="disp-yards">—</div><div class="card-sub">all loads</div></div>
-    <div class="card"><div class="card-label">Total Loads</div><div class="card-value blue" id="disp-count">—</div><div class="card-sub">receipts</div></div>
+    <div class="card"><div class="card-label">Total Yards</div><div class="card-value green" id="disp-yards">—</div><div class="card-sub">Organically loads</div></div>
+    <div class="card"><div class="card-label">Total Loads</div><div class="card-value blue" id="disp-count">—</div><div class="card-sub">Organically receipts</div></div>
     <div class="card"><div class="card-label">Avg Yards/Load</div><div class="card-value orange" id="disp-avg-yards">—</div><div class="card-sub">average</div></div>
-    <div class="card"><div class="card-label" style="color:#a855f7">💸 Total Invoiced</div><div class="card-value" style="color:#a855f7" id="disp-org-invoiced">—</div><div class="card-sub">all Organically invoices</div></div>
-    <div class="card"><div class="card-label" style="color:#22c55e">✅ Paid</div><div class="card-value" style="color:#22c55e" id="disp-org-paid">—</div><div class="card-sub" id="disp-org-paid-sub">0 invoices</div></div>
-    <div class="card"><div class="card-label" style="color:#ef4444">⚠️ Owed</div><div class="card-value" style="color:#ef4444" id="disp-org-owed">—</div><div class="card-sub" id="disp-org-owed-sub">0 invoices pending</div></div>
+    <div class="card"><div class="card-label">🏠 HQ Total Yards</div><div class="card-value" style="color:#fbbf24;font-size:22px" id="disp-hq-yards">—</div><div class="card-sub" id="disp-hq-loads-sub">0 loads</div></div>
+    <div class="card"><div class="card-label" style="color:#a855f7;font-size:11px">💸 Total Invoiced</div><div class="card-value" style="color:#a855f7;font-size:20px" id="disp-org-invoiced">—</div><div class="card-sub">all Organically invoices</div></div>
+    <div class="card"><div class="card-label" style="color:#22c55e">✅ Paid</div><div class="card-value" style="color:#22c55e;font-size:20px" id="disp-org-paid">—</div><div class="card-sub" id="disp-org-paid-sub">0 invoices</div></div>
+    <div class="card"><div class="card-label" style="color:#ef4444">⚠️ Owed</div><div class="card-value" style="color:#ef4444;font-size:20px" id="disp-org-owed">—</div><div class="card-sub" id="disp-org-owed-sub">0 invoices pending</div></div>
     <div class="card"><div class="card-label">Cost / Yard</div><div class="card-value" style="color:#f43f5e" id="disp-cost-yard">—</div><div class="card-sub">based on total invoiced</div></div>
     <div class="card"><div class="card-label" style="color:#3b82f6">🟢 Mantenimiento</div><div class="card-value" style="color:#3b82f6" id="disp-mant">—</div><div class="card-sub" id="disp-mant-yds">0 yds</div></div>
     <div class="card"><div class="card-label" style="color:#22c55e">🌳 Tree Trimming</div><div class="card-value" style="color:#22c55e" id="disp-tree">—</div><div class="card-sub" id="disp-tree-yds">0 yds</div></div>
@@ -2193,6 +2194,10 @@ function renderDisposalAnalytics() {
   var hqCost = costPerYard > 0 ? (hqYards * parseFloat(costPerYard)) : 0;
   document.getElementById('hq-loads').textContent = hqRows.length;
   document.getElementById('hq-yards').textContent = Math.round(hqYards);
+  var hqYardsEl = document.getElementById('disp-hq-yards');
+  if (hqYardsEl) hqYardsEl.textContent = Math.round(hqYards).toLocaleString();
+  var hqLoadsSub = document.getElementById('disp-hq-loads-sub');
+  if (hqLoadsSub) hqLoadsSub.textContent = hqRows.length + ' loads';
   document.getElementById('hq-cost').textContent = hqCost > 0 ? fmtD(hqCost) : '—';
   var hqHtml = hqRows.slice(0,50).map(function(r){
     return '<tr><td>'+esc(r['Date'])+'</td><td>'+esc(r['Receipt #'])+'</td><td>'+esc(r['Yards'])+'</td><td>'+esc(r['Truck'])+'</td><td>'+esc(r['Employee'])+'</td><td>'+esc(r['Type']||r['Group']||'—')+'</td></tr>';
