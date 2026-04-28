@@ -960,13 +960,26 @@
           <input id="amex-bulk-merchant" type="text" placeholder="Merchant keyword (e.g. Thumbtack)" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:12px;flex:1;min-width:140px" />
           <select id="amex-bulk-dept" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:12px">
             <option value="">-- Assign Dept --</option>
-            <option>Marketing</option>
-            <option>HQ / Office</option>
-            <option>AI & Technology</option>
             <option>Lawn Maintenance</option>
             <option>Irrigation</option>
+            <option>Tree Trimming</option>
+            <option>Landscaping</option>
+            <option>Pest Control</option>
+            <option>Construction Team</option>
+            <option>Holiday Lights</option>
+            <option>Lights</option>
+            <option>Mechanic</option>
+            <option>Mecánica</option>
+            <option>Managers</option>
+            <option>Vehicles</option>
             <option>Fleet</option>
+            <option>Equipo Edwin</option>
+            <option>Grupo Anibal</option>
+            <option>Grupo Ronald</option>
             <option>Operations</option>
+            <option>HQ / Office</option>
+            <option>AI & Technology</option>
+            <option>Marketing</option>
             <option>Shared</option>
           </select>
           <select id="amex-bulk-type" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:12px">
@@ -1100,17 +1113,28 @@ var sortDir = 'desc';
 
 // Dept → color
 var DEPT_COLORS = {
-  'Lawn Maintenance': '#22c55e',
-  'Equipo Edwin':     '#3b82f6',
-  'Irrigation':       '#06b6d4',
-  'Grupo Ronald':     '#f97316',
-  'Tree Trimming':    '#84cc16',
-  'Landscaping':      '#10b981',
-  'Grupo Anibal':     '#f59e0b',
-  'Mecánica':         '#ef4444',
-  'Pest Control':     '#a855f7',
-  'Holiday Lights':   '#ec4899',
-  'Unknown':          '#64748b'
+  'Lawn Maintenance':   '#22c55e',
+  'Equipo Edwin':       '#3b82f6',
+  'Irrigation':         '#06b6d4',
+  'Grupo Ronald':       '#f97316',
+  'Tree Trimming':      '#84cc16',
+  'Landscaping':        '#10b981',
+  'Grupo Anibal':       '#f59e0b',
+  'Mecánica':           '#ef4444',
+  'Mechanic':           '#ef4444',
+  'Pest Control':       '#a855f7',
+  'Holiday Lights':     '#ec4899',
+  'Lights':             '#fbbf24',
+  'Construction Team':  '#8b5cf6',
+  'Managers':           '#0ea5e9',
+  'Vehicles':           '#6366f1',
+  'HQ / Office':        '#64748b',
+  'AI & Technology':    '#38bdf8',
+  'Marketing':          '#f43f5e',
+  'Operations':         '#94a3b8',
+  'Fleet':              '#475569',
+  'Shared':             '#334155',
+  'Unknown':            '#64748b'
 };
 
 var chartLine, chartDonut, chartBar;
@@ -1471,9 +1495,12 @@ function populateAmexFilters() {
 }
 
 // ─── AMEX Classify & Split ─────────────────────────────────────────────
-var EPIC_DEPTS = ['Lawn Maintenance','Irrigation','Tree Trimming','Pest Control',
-  'Fleet','Holiday Lights','Grupo Anibal','Operations','Lighting','Grupo Ronald',
-  'HQ / Office','AI & Technology','Marketing','Shared'];
+var EPIC_DEPTS = [
+  'Lawn Maintenance','Irrigation','Tree Trimming','Landscaping','Pest Control',
+  'Construction Team','Holiday Lights','Lights','Mechanic','Mecánica',
+  'Managers','Vehicles','Fleet','Grupo Anibal','Grupo Ronald','Equipo Edwin',
+  'Operations','HQ / Office','AI & Technology','Marketing','Shared'
+];
 
 var amexActiveRowIndex = -1; // index into current filtered array
 var amexFilteredCache = []; // last rendered filtered rows
