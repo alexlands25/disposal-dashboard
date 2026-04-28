@@ -791,6 +791,9 @@
     <div class="card"><div class="card-label">Avg Yards/Load</div><div class="card-value orange" id="disp-avg-yards">—</div><div class="card-sub">average</div></div>
     <div class="card"><div class="card-label">Paid to Organically</div><div class="card-value purple" id="disp-org-total">—</div><div class="card-sub">los tomates</div></div>
     <div class="card"><div class="card-label">Cost / Yard</div><div class="card-value" style="color:#f43f5e" id="disp-cost-yard">—</div><div class="card-sub">avg per yard</div></div>
+    <div class="card"><div class="card-label" style="color:#3b82f6">🟢 Mantenimiento</div><div class="card-value" style="color:#3b82f6" id="disp-mant">—</div><div class="card-sub" id="disp-mant-yds">0 yds</div></div>
+    <div class="card"><div class="card-label" style="color:#22c55e">🌳 Tree Trimming</div><div class="card-value" style="color:#22c55e" id="disp-tree">—</div><div class="card-sub" id="disp-tree-yds">0 yds</div></div>
+    <div class="card"><div class="card-label" style="color:#f97316">🚛 Basura Rastra</div><div class="card-value" style="color:#f97316" id="disp-rastra">—</div><div class="card-sub" id="disp-rastra-yds">0 yds</div></div>
   </div>
 
   <!-- Charts 2x2 -->
@@ -1938,11 +1941,26 @@ function renderDisposalAnalytics() {
   var fmt = function(n){ return n.toLocaleString('en-US'); };
   var fmtD = function(n){ return '$'+parseFloat(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); };
 
+  // Per-group stats
+  var mantLoads=0,mantYds=0,treeLoads=0,treeYds=0,rastraLoads=0,rastraYds=0;
+  rows.forEach(function(r){
+    var d=r['Department']||''; var y=parseFloat(r['Yards'])||0;
+    if(d.includes('Mantenimiento')){mantLoads++;mantYds+=y;}
+    else if(d.includes('Rastra')||d.includes('rastra')){rastraLoads++;rastraYds+=y;}
+    else if(d.includes('Tree')){treeLoads++;treeYds+=y;}
+  });
+
   document.getElementById('disp-yards').textContent = fmt(Math.round(totalYards));
   document.getElementById('disp-count').textContent = fmt(totalLoads);
   document.getElementById('disp-avg-yards').textContent = avgYards;
   document.getElementById('disp-org-total').textContent = orgTotal > 0 ? fmtD(orgTotal) : '—';
   document.getElementById('disp-cost-yard').textContent = costPerYard > 0 ? '$'+costPerYard : '—';
+  document.getElementById('disp-mant').textContent = fmt(mantLoads);
+  document.getElementById('disp-mant-yds').textContent = fmt(Math.round(mantYds))+' yds';
+  document.getElementById('disp-tree').textContent = fmt(treeLoads);
+  document.getElementById('disp-tree-yds').textContent = fmt(Math.round(treeYds))+' yds';
+  document.getElementById('disp-rastra').textContent = fmt(rastraLoads);
+  document.getElementById('disp-rastra-yds').textContent = fmt(Math.round(rastraYds))+' yds';
 
   // --- Chart 1: Yards by Month (stacked bar) ---
   var months = {};
@@ -1952,10 +1970,11 @@ function renderDisposalAnalytics() {
     if (!m) return;
     // Normalize MM/DD/YYYY -> YYYY-MM
     if (m.indexOf('/')>-1) { var p=d.split('/'); if(p.length>=3) m=p[2]+'-'+p[0].padStart(2,'0'); }
-    if (!months[m]) months[m] = {mant:0, tree:0};
+    if (!months[m]) months[m] = {mant:0, tree:0, rastra:0};
     var dept = r['Department']||'';
     var yds = parseFloat(r['Yards'])||0;
     if (dept.includes('Mantenimiento')) months[m].mant += yds;
+    else if (dept.includes('Rastra') || dept.includes('rastra')) months[m].rastra += yds;
     else months[m].tree += yds;
   });
   var mKeys = Object.keys(months).sort().slice(-12);
@@ -1966,7 +1985,8 @@ function renderDisposalAnalytics() {
     data:{ labels: mKeys,
       datasets:[
         { label:'Mantenimiento', data: mKeys.map(function(k){return months[k].mant;}), backgroundColor:'#3b82f6', borderRadius:4 },
-        { label:'Tree Trimming', data: mKeys.map(function(k){return months[k].tree;}), backgroundColor:'#22c55e', borderRadius:4 }
+        { label:'Tree Trimming', data: mKeys.map(function(k){return months[k].tree;}), backgroundColor:'#22c55e', borderRadius:4 },
+        { label:'Basura Rastra', data: mKeys.map(function(k){return months[k].rastra;}), backgroundColor:'#f97316', borderRadius:4 }
       ]},
     options:{ responsive:true, maintainAspectRatio:false, plugins: CHART_DEFAULTS.plugins,
       scales:{ x:{stacked:true,ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,.05)'}}, y:{stacked:true,ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,.05)'}} } }
