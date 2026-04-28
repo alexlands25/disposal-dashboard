@@ -529,7 +529,7 @@
       <div class="logo">🧾</div>
       <div class="header-title">
         <h1>Epic Receipt Log</h1>
-        <p>Operational Expense Tracking — Epic Landscaping &nbsp;<span style="background:rgba(34,197,94,.15);color:#22c55e;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.04em">v3.1.0</span></p>
+        <p>Operational Expense Tracking — Epic Landscaping &nbsp;<span style="background:rgba(34,197,94,.15);color:#22c55e;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.04em">v3.1.1</span></p>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:10px">
@@ -898,7 +898,7 @@
     <div class="table-wrap">
       <table>
         <thead><tr>
-          <th>Date</th><th>Dept</th><th>Receipt #</th><th>Client</th><th>Yards</th><th>Truck</th><th>Employee</th><th>Amount</th><th>Photo</th>
+          <th>Date</th><th>Dept</th><th>Receipt #</th><th>Client</th><th>Yards</th><th>Truck</th><th>Employee</th><th>Amount</th><th>Photo</th><th>Type</th>
         </tr></thead>
         <tbody id="disp-body"><tr><td colspan="9"><div class="loading-msg"><div class="loading-spin"></div><br/>Loading…</div></td></tr></tbody>
       </table>
@@ -2312,13 +2312,48 @@ function renderDisposalCharts() {
   });
 }
 
+var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxlQ9_5ww_Dq-675HCvORrXvbOYmztDs8pO8ZMm0FrlcMsTjbzLHnVY22a1oBYRb8kxYA/exec';
+var CONSOLIDATED_SHEET_ID = '1uvwHpRUYOVki3EG9WGbtX4Em8vM1EPw6nM0DCEOTykc';
+
+function flipRowType(receiptNum, currentType, btn) {
+  var newType = (currentType === 'internal_form') ? 'receipt' : 'internal_form';
+  var label = (newType === 'receipt') ? '📝 Organically' : '🏠 Epic HQ';
+  btn.textContent = '...';
+  btn.disabled = true;
+  fetch(APPS_SCRIPT_URL, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      action:'updateCell', sheetId: CONSOLIDATED_SHEET_ID, sheetName:'Disposal',
+      lookupCol:'C', lookupVal: receiptNum, updateCol:'M', updateVal: newType
+    })
+  }).then(function(r){ return r.json(); }).then(function(res){
+    // Update in-memory data
+    disposalRows.forEach(function(r){
+      if(String(r['Receipt #']) === String(receiptNum)) r['TypeOverride'] = newType;
+    });
+    btn.textContent = label;
+    btn.disabled = false;
+    btn.setAttribute('data-type', newType);
+    btn.style.background = newType==='receipt' ? 'rgba(168,85,247,.2)' : 'rgba(251,191,36,.2)';
+    btn.style.color = newType==='receipt' ? '#a855f7' : '#fbbf24';
+    renderDisposalAnalytics();
+  }).catch(function(){ btn.textContent = '❌ Error'; btn.disabled = false; });
+}
+
 function renderDisposalTable() {
   var html = disposalFiltered.map(function(r){
     var photo = r['Photo Link'] ? '<a href="'+esc(r['Photo Link'])+'" target="_blank">📷</a>' : '—';
     var amt = r['Amount'] && r['Amount']!='0' ? '$'+r['Amount'] : '—';
-    return '<tr><td>'+esc(r['Date'])+'</td><td>'+esc(r['Department'])+'</td><td>'+esc(r['Receipt #'])+'</td><td>'+esc(r['Client'])+'</td><td>'+esc(r['Yards'])+'</td><td>'+esc(r['Truck'])+'</td><td>'+esc(r['Employee'])+'</td><td>'+amt+'</td><td>'+photo+'</td></tr>';
+    var t = r['TypeOverride'] || r['Type'] || 'receipt';
+    var tLabel = t==='internal_form' ? '🏠 Epic HQ' : '📝 Organically';
+    var tColor = t==='internal_form' ? '#fbbf24' : '#a855f7';
+    var tBg = t==='internal_form' ? 'rgba(251,191,36,.15)' : 'rgba(168,85,247,.15)';
+    var rn = esc(r['Receipt #']);
+    var typeBtn = '<button data-type="'+t+'" onclick="flipRowType(\'' + rn + '\',this.getAttribute(\'data-type\'),this)" '
+      + 'style="background:'+tBg+';color:'+tColor+';border:none;border-radius:4px;padding:2px 7px;font-size:10px;cursor:pointer;font-weight:600">'+tLabel+'</button>';
+    return '<tr><td>'+esc(r['Date'])+'</td><td>'+esc(r['Department'])+'</td><td style="font-size:11px">'+rn+'</td><td>'+esc(r['Client'])+'</td><td>'+esc(r['Yards'])+'</td><td>'+esc(r['Truck'])+'</td><td>'+esc(r['Employee'])+'</td><td>'+amt+'</td><td>'+photo+'</td><td>'+typeBtn+'</td></tr>';
   }).join('');
-  document.getElementById('disp-body').innerHTML = html || '<tr><td colspan="9">No receipts match the filter.</td></tr>';
+  document.getElementById('disp-body').innerHTML = html || '<tr><td colspan="10">No receipts match the filter.</td></tr>';
   document.getElementById('disp-footer').textContent = disposalFiltered.length.toLocaleString() + ' receipts';
 }
 
