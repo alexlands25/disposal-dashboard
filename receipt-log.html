@@ -529,7 +529,7 @@
       <div class="logo">🧾</div>
       <div class="header-title">
         <h1>Epic Receipt Log</h1>
-        <p>Operational Expense Tracking — Epic Landscaping &nbsp;<span style="background:rgba(34,197,94,.15);color:#22c55e;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.04em">v2.4.0</span></p>
+        <p>Operational Expense Tracking — Epic Landscaping &nbsp;<span style="background:rgba(34,197,94,.15);color:#22c55e;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.04em">v2.5.0</span></p>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:10px">
@@ -1059,6 +1059,25 @@
       </table>
     </div>
     <div class="table-footer" id="corr-footer">0 corrections</div>
+  </div>
+  <!-- Change Log — discreet audit trail from Google Sheet -->
+  <div class="table-section" style="margin-top:24px">
+    <div class="table-header" style="cursor:pointer;background:rgba(148,163,184,.04);border-color:rgba(148,163,184,.15)" onclick="toggleChangeLog()">
+      <h2 style="color:var(--muted);font-size:14px;font-weight:600">🔍 Change Log <span style="font-size:11px;font-weight:400;margin-left:8px">(system + manual edits)</span></h2>
+      <span id="cl-toggle" style="color:var(--muted);font-size:14px">▼</span>
+    </div>
+    <div id="cl-body" style="display:none">
+      <div style="padding:10px 20px;color:var(--muted);font-size:11px;border-bottom:1px solid var(--border)">
+        Wallee logs every automated change here. Manual edits by humans appear via Google's native version history.
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Timestamp</th><th>User</th><th>Sheet</th><th>Row</th><th>Col</th><th>Old Value</th><th>New Value</th><th>Note</th></tr></thead>
+          <tbody id="cl-table-body"><tr><td colspan="8"><div class="loading-msg"><div class="loading-spin"></div><br/>Loading…</div></td></tr></tbody>
+        </table>
+      </div>
+      <div class="table-footer" id="cl-footer">—</div>
+    </div>
   </div>
 </div><!-- /corrections-page -->
 
@@ -2939,6 +2958,57 @@ function logCorrection(field, store, date, oldVal, newVal, sheetRow) {
       row: [ts, field, store, date, oldVal, newVal]
     })
   }).catch(function(){}) // best-effort, don't block UI
+}
+
+var clLoaded = false;
+function toggleChangeLog() {
+  var body = document.getElementById('cl-body');
+  var tog  = document.getElementById('cl-toggle');
+  if (body.style.display === 'none') {
+    body.style.display = 'block';
+    tog.textContent = '▲';
+    if (!clLoaded) { clLoaded = true; loadChangeLog(); }
+  } else {
+    body.style.display = 'none';
+    tog.textContent = '▼';
+  }
+}
+
+function loadChangeLog() {
+  var MANT_ID = '1AC31GJeSitF6xosFMuNznlkbzLt_IOPu8exybfYqjWQ';
+  var url = 'https://docs.google.com/spreadsheets/d/' + MANT_ID + '/gviz/tq?tqx=out:json&sheet=' + encodeURIComponent('Change Log');
+  fetch(url).then(function(r){ return r.text(); }).then(function(text){
+    var json = text.replace(/^\/\*[^*]*\*\/\s*/,'').replace(/^[^(]*\(/,'').replace(/\);?\s*$/,'');
+    var gviz = JSON.parse(json);
+    var cols = gviz.table.cols.map(function(c){ return c.label; });
+    var rows = (gviz.table.rows||[]).map(function(row){
+      var obj={};
+      row.c.forEach(function(cell,i){ obj[cols[i]] = cell ? (cell.f||cell.v||'') : ''; });
+      return obj;
+    }).filter(function(r){ return r['Timestamp'] || r['User']; });
+    var tbody = document.getElementById('cl-table-body');
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="8" style="color:var(--muted);text-align:center;padding:20px">No entries yet.</td></tr>';
+      document.getElementById('cl-footer').textContent = '0 entries';
+      return;
+    }
+    tbody.innerHTML = rows.slice().reverse().map(function(r){
+      var userColor = r['User']==='Wallee (System)' ? '#3b82f6' : '#f97316';
+      return '<tr>'
+        + '<td style="color:var(--muted);font-size:11px;white-space:nowrap">'+esc(r['Timestamp'])+'</td>'
+        + '<td><span style="color:'+userColor+';font-weight:600;font-size:11px">'+esc(r['User'])+'</span></td>'
+        + '<td style="font-size:11px">'+esc(r['Sheet'])+'</td>'
+        + '<td style="color:var(--muted);font-size:11px;text-align:center">'+esc(r['Row'])+'</td>'
+        + '<td style="color:var(--muted);font-size:11px;text-align:center">'+esc(r['Column'])+'</td>'
+        + '<td style="color:#ef4444;font-size:11px">'+esc(r['Old Value'])+'</td>'
+        + '<td style="color:#22c55e;font-size:11px">'+esc(r['New Value'])+'</td>'
+        + '<td style="color:var(--muted);font-size:11px">'+esc(r['Note'])+'</td>'
+        + '</tr>';
+    }).join('');
+    document.getElementById('cl-footer').textContent = rows.length + ' entr' + (rows.length===1?'y':'ies') + ' (newest first)';
+  }).catch(function(e){
+    document.getElementById('cl-table-body').innerHTML = '<tr><td colspan="8" style="color:#ef4444;text-align:center;padding:20px">Could not load Change Log — check sheet permissions.</td></tr>';
+  });
 }
 
 function renderCorrectionsPage() {
