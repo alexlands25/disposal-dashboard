@@ -529,7 +529,7 @@
       <div class="logo">🧾</div>
       <div class="header-title">
         <h1>Epic Receipt Log</h1>
-        <p>Operational Expense Tracking — Epic Landscaping &nbsp;<span style="background:rgba(34,197,94,.15);color:#22c55e;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.04em">v2.8.0</span></p>
+        <p>Operational Expense Tracking — Epic Landscaping &nbsp;<span style="background:rgba(34,197,94,.15);color:#22c55e;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.04em">v2.9.0</span></p>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:10px">
@@ -797,8 +797,10 @@
     <div class="card"><div class="card-label">Total Yards</div><div class="card-value green" id="disp-yards">—</div><div class="card-sub">all loads</div></div>
     <div class="card"><div class="card-label">Total Loads</div><div class="card-value blue" id="disp-count">—</div><div class="card-sub">receipts</div></div>
     <div class="card"><div class="card-label">Avg Yards/Load</div><div class="card-value orange" id="disp-avg-yards">—</div><div class="card-sub">average</div></div>
-    <div class="card"><div class="card-label">Paid to Organically</div><div class="card-value purple" id="disp-org-total">—</div><div class="card-sub">los tomates</div></div>
-    <div class="card"><div class="card-label">Cost / Yard</div><div class="card-value" style="color:#f43f5e" id="disp-cost-yard">—</div><div class="card-sub">avg per yard</div></div>
+    <div class="card"><div class="card-label" style="color:#a855f7">💸 Total Invoiced</div><div class="card-value" style="color:#a855f7" id="disp-org-invoiced">—</div><div class="card-sub">all Organically invoices</div></div>
+    <div class="card"><div class="card-label" style="color:#22c55e">✅ Paid</div><div class="card-value" style="color:#22c55e" id="disp-org-paid">—</div><div class="card-sub" id="disp-org-paid-sub">0 invoices</div></div>
+    <div class="card"><div class="card-label" style="color:#ef4444">⚠️ Owed</div><div class="card-value" style="color:#ef4444" id="disp-org-owed">—</div><div class="card-sub" id="disp-org-owed-sub">0 invoices pending</div></div>
+    <div class="card"><div class="card-label">Cost / Yard</div><div class="card-value" style="color:#f43f5e" id="disp-cost-yard">—</div><div class="card-sub">based on total invoiced</div></div>
     <div class="card"><div class="card-label" style="color:#3b82f6">🟢 Mantenimiento</div><div class="card-value" style="color:#3b82f6" id="disp-mant">—</div><div class="card-sub" id="disp-mant-yds">0 yds</div></div>
     <div class="card"><div class="card-label" style="color:#22c55e">🌳 Tree Trimming</div><div class="card-value" style="color:#22c55e" id="disp-tree">—</div><div class="card-sub" id="disp-tree-yds">0 yds</div></div>
     <div class="card"><div class="card-label" style="color:#f97316">🚛 Basura Rastra</div><div class="card-value" style="color:#f97316" id="disp-rastra">—</div><div class="card-sub" id="disp-rastra-yds">0 yds</div></div>
@@ -846,16 +848,33 @@
   <!-- Organically Reconciliation -->
   <div class="table-section" style="margin-bottom:24px">
     <div class="table-header" style="cursor:pointer" onclick="toggleRecon()">
-      <h2>🔍 Organically Reconciliation</h2>
+      <h2>🔍 Organically — Invoices &amp; Reconciliation</h2>
       <span id="recon-toggle" style="color:var(--muted);font-size:18px">▼</span>
     </div>
     <div id="recon-body" style="display:none">
-      <div style="padding:12px 20px;color:var(--muted);font-size:12px;border-bottom:1px solid var(--border)">
-        Cruza ticket # de Organically vs nuestros recibos. 🟢 Matched = ticket encontrado. 🟠 No Match = no está en nuestros records (posible error de cobro).
+      <!-- Invoice-level summary -->
+      <div style="padding:12px 20px;border-bottom:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Invoice summary — mark paid in column M of the Organically sheet. Ticket reconciliation below.</div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <thead><tr style="color:var(--muted)">
+              <th style="padding:6px 10px;text-align:left">Invoice #</th>
+              <th style="padding:6px 10px;text-align:left">Invoice Date</th>
+              <th style="padding:6px 10px;text-align:left">Period</th>
+              <th style="padding:6px 10px;text-align:right">Total</th>
+              <th style="padding:6px 10px;text-align:center">Status</th>
+            </tr></thead>
+            <tbody id="invoice-table-body"><tr><td colspan="5" style="padding:16px;text-align:center;color:var(--muted)">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <!-- Ticket-level reconciliation -->
+      <div style="padding:8px 20px;color:var(--muted);font-size:11px;border-bottom:1px solid var(--border)">
+        📌 Ticket-by-ticket match: each Organically line vs your receipts
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Invoice #</th><th>Date</th><th>Ticket #</th><th>Truck</th><th>Activity</th><th>Amount</th><th>Status</th></tr></thead>
+          <thead><tr><th>Invoice #</th><th>Date</th><th>Ticket #</th><th>Truck</th><th>Activity</th><th>Amount</th><th>Match</th></tr></thead>
           <tbody id="recon-table-body"><tr><td colspan="7"><div class="loading-msg"><div class="loading-spin"></div><br/>Loading Organically data…</div></td></tr></tbody>
         </table>
       </div>
@@ -1932,12 +1951,51 @@ function loadOrganicallyData() {
   }).catch(function(e){ console.warn('Organically load failed', e); });
 }
 
+function renderInvoiceTable() {
+  // Build per-invoice summary
+  var invoices = {};
+  organicallyRows.forEach(function(r) {
+    var inv = r['Invoice #'];
+    if (!inv) return;
+    if (!invoices[inv]) {
+      invoices[inv] = {
+        inv: inv,
+        date: r['Invoice Date'] || r['Date'] || '',
+        start: r['Period Start'] || '',
+        end: r['Period End'] || '',
+        total: parseFloat(r['Invoice Total']) || 0,
+        status: r['Status'] || 'Unpaid',
+        payDate: r['Payment Date'] || ''
+      };
+    }
+    // status from ANY row in this invoice
+    if (r['Status'] && r['Status'] !== 'Unpaid') invoices[inv].status = r['Status'];
+    if (r['Payment Date']) invoices[inv].payDate = r['Payment Date'];
+  });
+  var invList = Object.values(invoices).sort(function(a,b){ return a.date > b.date ? 1 : -1; });
+  var html = invList.map(function(inv) {
+    var paid = inv.status === 'Paid';
+    var badge = paid
+      ? '<span style="background:rgba(34,197,94,.15);color:#22c55e;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700">✅ Paid</span>'
+      : '<span style="background:rgba(239,68,68,.12);color:#ef4444;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700">⚠️ Unpaid</span>';
+    return '<tr style="'+(paid?'opacity:.6':'')+'">'
+      + '<td style="font-size:11px;color:var(--muted)">'+esc(inv.inv)+'</td>'
+      + '<td style="font-size:12px">'+esc(inv.date)+'</td>'
+      + '<td style="font-size:11px;color:var(--muted)">'+esc(inv.start)+' – '+esc(inv.end)+'</td>'
+      + '<td style="text-align:right;font-weight:700;color:'+(paid?'#22c55e':'#ef4444')+'">'+(inv.total?'$'+inv.total.toLocaleString('en-US',{minimumFractionDigits:2}):'—')+'</td>'
+      + '<td style="text-align:center">'+badge+(inv.payDate?' <span style="font-size:10px;color:var(--muted)">'+esc(inv.payDate)+'</span>':'')+'</td>'
+      + '</tr>';
+  }).join('');
+  document.getElementById('invoice-table-body').innerHTML = html || '<tr><td colspan="5" style="padding:16px;text-align:center;color:var(--muted)">No invoices loaded.</td></tr>';
+}
+
 function toggleRecon() {
   var body = document.getElementById('recon-body');
   var tog = document.getElementById('recon-toggle');
   if (body.style.display === 'none') {
     body.style.display = 'block';
     tog.textContent = '▲';
+    renderInvoiceTable();
     renderReconTable();
   } else {
     body.style.display = 'none';
@@ -1972,12 +2030,23 @@ function renderDisposalAnalytics() {
   var orgRows = dispYearFilter === 'all' ? organicallyRows : organicallyRows.filter(function(r){
     return (r['Invoice Date']||r['Date']||'').includes(dispYearFilter);
   });
-  var orgTotal = 0;
-  orgRows.forEach(function(r){ orgTotal += parseFloat(r['Amount'])||0; });
-  var costPerYard = totalYards > 0 ? (orgTotal/totalYards).toFixed(2) : 0;
+  // Invoice-level totals (deduplicated by Invoice #)
+  var seenInv = {};
+  var orgInvoiced = 0, orgPaid = 0, orgPaidCount = 0, orgUnpaidCount = 0;
+  organicallyRows.forEach(function(r) {
+    var inv = r['Invoice #'];
+    if (!inv || seenInv[inv]) return;
+    seenInv[inv] = true;
+    var total = parseFloat(r['Invoice Total']) || 0;
+    orgInvoiced += total;
+    if ((r['Status']||'').toLowerCase() === 'paid') { orgPaid += total; orgPaidCount++; }
+    else orgUnpaidCount++;
+  });
+  var orgOwed = orgInvoiced - orgPaid;
+  var costPerYard = totalYards > 0 && orgInvoiced > 0 ? (orgInvoiced/totalYards).toFixed(2) : 0;
+  var fmtD = function(n){ return '$'+parseFloat(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); };
 
   var fmt = function(n){ return n.toLocaleString('en-US'); };
-  var fmtD = function(n){ return '$'+parseFloat(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); };
 
   // Per-group stats
   var mantLoads=0,mantYds=0,treeLoads=0,treeYds=0,rastraLoads=0,rastraYds=0;
@@ -1991,7 +2060,11 @@ function renderDisposalAnalytics() {
   document.getElementById('disp-yards').textContent = fmt(Math.round(totalYards));
   document.getElementById('disp-count').textContent = fmt(totalLoads);
   document.getElementById('disp-avg-yards').textContent = avgYards;
-  document.getElementById('disp-org-total').textContent = orgTotal > 0 ? fmtD(orgTotal) : '—';
+  document.getElementById('disp-org-invoiced').textContent = orgInvoiced > 0 ? fmtD(orgInvoiced) : '—';
+  document.getElementById('disp-org-paid').textContent = orgPaid > 0 ? fmtD(orgPaid) : '$0.00';
+  document.getElementById('disp-org-paid-sub').textContent = orgPaidCount + ' invoice' + (orgPaidCount!==1?'s':'') + ' paid';
+  document.getElementById('disp-org-owed').textContent = orgOwed > 0 ? fmtD(orgOwed) : '$0.00';
+  document.getElementById('disp-org-owed-sub').textContent = orgUnpaidCount + ' invoice' + (orgUnpaidCount!==1?'s':'') + ' pending';
   document.getElementById('disp-cost-yard').textContent = costPerYard > 0 ? '$'+costPerYard : '—';
   document.getElementById('disp-mant').textContent = fmt(mantLoads);
   document.getElementById('disp-mant-yds').textContent = fmt(Math.round(mantYds))+' yds';
