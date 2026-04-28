@@ -87,6 +87,42 @@
     /* ─── Fuel Page ─────────────────────────────────────────── */
     #fuel-page { display: none; }
     #disposal-page { display: none; }
+    #amex-page { display: none; }
+    .amex-kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap: 14px; margin-bottom: 24px; }
+    .amex-kpi { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
+    .amex-kpi .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+    .amex-kpi .value { font-size: 24px; font-weight: 700; }
+    .amex-kpi .sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .amex-kpi.red .value { color: #ff6b6b; }
+    .amex-kpi.yellow .value { color: #ffd93d; }
+    .amex-kpi.green .value { color: #6bcb77; }
+    .amex-kpi.blue .value { color: #4d96ff; }
+    .amex-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+    @media(max-width:700px){ .amex-two-col { grid-template-columns: 1fr; } }
+    .amex-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
+    .amex-card h3 { font-size: 13px; font-weight: 600; margin-bottom: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+    .amex-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; font-size: 12px; }
+    .amex-bar-label { width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
+    .amex-bar-track { flex: 1; height: 7px; background: var(--border); border-radius: 4px; overflow: hidden; }
+    .amex-bar-fill { height: 100%; border-radius: 4px; background: var(--green); }
+    .amex-bar-amt { width: 80px; text-align: right; color: var(--muted); }
+    .amex-flag-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 12px; gap: 10px; }
+    .amex-flag-row:last-child { border-bottom: none; }
+    .amex-flag-desc { flex: 1; color: var(--text); }
+    .amex-flag-badge { background: rgba(255,107,107,.15); color: #ff6b6b; border-radius: 4px; padding: 2px 7px; font-size: 11px; white-space: nowrap; }
+    .amex-filter-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+    .amex-filter-row select, .amex-filter-row input { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 7px 12px; font-size: 13px; }
+    .amex-table-wrap { overflow-x: auto; }
+    .amex-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .amex-table th { background: var(--surface); color: var(--muted); padding: 10px 12px; text-align: left; font-weight: 500; white-space: nowrap; }
+    .amex-table td { padding: 9px 12px; border-top: 1px solid var(--border); vertical-align: top; }
+    .amex-table tr:hover td { background: rgba(255,255,255,.03); }
+    .badge-family { background: rgba(77,150,255,.15); color: #4d96ff; border-radius: 4px; padding: 2px 7px; font-size: 10px; }
+    .badge-flag { background: rgba(255,107,107,.15); color: #ff6b6b; border-radius: 4px; padding: 2px 7px; font-size: 10px; }
+    .badge-ok { background: rgba(107,203,119,.15); color: #6bcb77; border-radius: 4px; padding: 2px 7px; font-size: 10px; }
+    .amex-tabs { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
+    .amex-sub-tab { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 14px; font-size: 12px; cursor: pointer; color: var(--muted); }
+    .amex-sub-tab.active { background: var(--green); color: #000; border-color: var(--green); font-weight: 600; }
     .fuel-recon-table table { width:100%; border-collapse:collapse; font-size:13px; }
     .fuel-recon-table th { background: var(--surface); color: var(--muted); padding: 10px 14px; text-align:left; font-weight:500; }
     .fuel-recon-table td { padding: 10px 14px; border-top: 1px solid var(--border); }
@@ -360,6 +396,7 @@
     <button class="page-tab" onclick="showPage('fuel',this)" id="tab-fuel">⛽ Fuel</button>
     <button class="page-tab" onclick="showPage('disposal',this)" id="tab-disposal">🗑️ EPIC DUMPS</button>
     <button class="page-tab" onclick="showPage('corrections',this)" id="tab-corrections">✏️ Corrections</button>
+    <button class="page-tab" onclick="showPage('amex',this)" id="tab-amex">💳 AMEX Intelligence</button>
   </nav>
 
   <div class="status-pill">
@@ -672,6 +709,68 @@
 </div><!-- /disposal-page -->
 
 <!-- Corrections Log Page -->
+<!-- ═══════════════ AMEX INTELLIGENCE PAGE ═══════════════ -->
+<div id="amex-page" style="display:none">
+  <div class="amex-tabs">
+    <button class="amex-sub-tab active" onclick="amexSubPage('overview',this)">📊 Overview</button>
+    <button class="amex-sub-tab" onclick="amexSubPage('employees',this)">👤 Employees</button>
+    <button class="amex-sub-tab" onclick="amexSubPage('categories',this)">🏷️ Categories</button>
+    <button class="amex-sub-tab" onclick="amexSubPage('flags',this)">🚨 Flags</button>
+    <button class="amex-sub-tab" onclick="amexSubPage('transactions',this)">📋 Transactions</button>
+  </div>
+
+  <!-- OVERVIEW -->
+  <div id="amex-overview">
+    <div class="amex-kpi-grid" id="amex-kpis"></div>
+    <div class="amex-two-col">
+      <div class="amex-card"><h3>💼 Spend by Division</h3><div id="amex-div-bars"></div></div>
+      <div class="amex-card"><h3>🏷️ Top Categories</h3><div id="amex-cat-bars"></div></div>
+    </div>
+    <div class="amex-two-col">
+      <div class="amex-card"><h3>📣 Marketing Spend</h3><div id="amex-marketing"></div></div>
+      <div class="amex-card"><h3>🚨 Recent Flags</h3><div id="amex-flags-preview"></div></div>
+    </div>
+  </div>
+
+  <!-- EMPLOYEES -->
+  <div id="amex-employees" style="display:none">
+    <div class="amex-card"><h3>💳 Cardholder Breakdown</h3><div id="amex-emp-bars"></div></div>
+  </div>
+
+  <!-- CATEGORIES -->
+  <div id="amex-categories" style="display:none">
+    <div class="amex-card"><h3>🏷️ All Categories</h3><div id="amex-allcat-bars"></div></div>
+  </div>
+
+  <!-- FLAGS -->
+  <div id="amex-flaglist" style="display:none">
+    <div class="amex-card"><h3>🚨 All Flagged Transactions</h3><div id="amex-flags-all"></div></div>
+  </div>
+
+  <!-- TRANSACTIONS -->
+  <div id="amex-transactions" style="display:none">
+    <div class="amex-card">
+      <h3>📋 Transaction Ledger</h3>
+      <div class="amex-filter-row">
+        <input id="amex-search" type="text" placeholder="Search merchant, cardholder…" oninput="renderAmexTable()" />
+        <select id="amex-filter-type" onchange="renderAmexTable()">
+          <option value="">All Types</option>
+          <option>Business</option>
+          <option>Owner/Family</option>
+          <option>Owner/Personal</option>
+        </select>
+        <select id="amex-filter-cat" onchange="renderAmexTable()"><option value="">All Categories</option></select>
+        <select id="amex-filter-div" onchange="renderAmexTable()"><option value="">All Divisions</option></select>
+      </div>
+      <div class="amex-table-wrap"><table class="amex-table" id="amex-ledger-table">
+        <thead><tr><th>Date</th><th>Merchant</th><th>Cardholder</th><th>Type</th><th>Division</th><th>Category</th><th>Amount</th><th>Flags</th></tr></thead>
+        <tbody id="amex-ledger-body"></tbody>
+      </table></div>
+      <div style="padding:10px 0; font-size:12px; color:var(--muted)" id="amex-ledger-footer"></div>
+    </div>
+  </div>
+</div>
+
 <div id="corrections-page" style="display:none">
   <div class="cards" style="margin-bottom:20px">
     <div class="card">
@@ -758,6 +857,170 @@ var amtMin = 0;
 var amtMax = Infinity;
 var correctionLog = []; // in-memory log for current session
 
+// ─── AMEX ────────────────────────────────────────────────────────────────────
+var amexRows = [];
+var amexCurrentSub = 'overview';
+
+function loadAmexData() {
+  var url = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:json&sheet=' + encodeURIComponent('AMEX');
+  fetch(url).then(function(r){ return r.text(); }).then(function(text) {
+    var json = JSON.parse(text.replace(/^[^{]+/, '').replace(/;?\s*$/, ''));
+    var cols = json.table.cols.map(function(c){ return c.label; });
+    amexRows = [];
+    json.table.rows.forEach(function(row) {
+      var obj = {};
+      cols.forEach(function(col, i) {
+        obj[col] = row.c[i] && row.c[i].v !== null ? row.c[i].v : '';
+      });
+      // Skip header row if duplicated
+      if (obj['Date'] === 'Date') return;
+      if (!obj['Amount'] && obj['Amount'] !== 0) return;
+      obj['Amount'] = parseFloat(obj['Amount']) || 0;
+      amexRows.push(obj);
+    });
+    renderAmexOverview();
+    populateAmexFilters();
+  }).catch(function(e){ console.error('AMEX load error', e); });
+}
+
+function amexSubPage(sub, el) {
+  document.querySelectorAll('.amex-sub-tab').forEach(function(t){ t.classList.remove('active'); });
+  el.classList.add('active');
+  ['overview','employees','categories','flaglist','transactions'].forEach(function(s) {
+    var el = document.getElementById('amex-' + s);
+    if (el) el.style.display = 'none';
+  });
+  amexCurrentSub = sub;
+  var target = document.getElementById('amex-' + (sub === 'flags' ? 'flaglist' : sub));
+  if (target) target.style.display = 'block';
+  if (sub === 'overview') renderAmexOverview();
+  if (sub === 'employees') renderAmexEmployees();
+  if (sub === 'categories') renderAmexCategories();
+  if (sub === 'flags') renderAmexFlags();
+  if (sub === 'transactions') renderAmexTable();
+}
+
+function amexCharges() { return amexRows.filter(function(r){ return r['Amount'] > 0; }); }
+
+function fmt(n) { return '$' + Math.abs(n).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+
+function renderAmexOverview() {
+  if (!amexRows.length) return;
+  var charges = amexCharges();
+  var total = charges.reduce(function(s,r){ return s + r['Amount']; }, 0);
+  var bizOnly = charges.filter(function(r){ return r['Type'] === 'Business'; });
+  var bizTotal = bizOnly.reduce(function(s,r){ return s + r['Amount']; }, 0);
+  var familyTotal = charges.filter(function(r){ return r['Type'] !== 'Business'; }).reduce(function(s,r){ return s + r['Amount']; }, 0);
+  var flagged = charges.filter(function(r){ return r['Flags'] && r['Flags'] !== 'Owner/Family' && !r['Flags'].startsWith('Owner/Family'); });
+  var mktTotal = charges.filter(function(r){ return r['Category'] === 'Marketing'; }).reduce(function(s,r){ return s + r['Amount']; }, 0);
+
+  document.getElementById('amex-kpis').innerHTML = [
+    '<div class="amex-kpi blue"><div class="label">Total Charges</div><div class="value">' + fmt(total) + '</div><div class="sub">' + charges.length + ' transactions</div></div>',
+    '<div class="amex-kpi green"><div class="label">Business Spend</div><div class="value">' + fmt(bizTotal) + '</div><div class="sub">Operations only</div></div>',
+    '<div class="amex-kpi yellow"><div class="label">Owner / Family</div><div class="value">' + fmt(familyTotal) + '</div><div class="sub">Separated from ops</div></div>',
+    '<div class="amex-kpi"><div class="label">Marketing Spend</div><div class="value">' + fmt(mktTotal) + '</div><div class="sub">Thumbtack + more</div></div>',
+    '<div class="amex-kpi red"><div class="label">Flagged Items</div><div class="value">' + flagged.length + '</div><div class="sub">Needs review</div></div>',
+  ].join('');
+
+  // Division bars
+  var divs = {};
+  bizOnly.forEach(function(r){ divs[r['Division']] = (divs[r['Division']]||0) + r['Amount']; });
+  var divMax = Math.max.apply(null, Object.values(divs));
+  document.getElementById('amex-div-bars').innerHTML = Object.entries(divs).sort(function(a,b){ return b[1]-a[1]; }).map(function(e){
+    return '<div class="amex-bar-row"><div class="amex-bar-label">' + e[0] + '</div><div class="amex-bar-track"><div class="amex-bar-fill" style="width:' + (e[1]/divMax*100).toFixed(1) + '%"></div></div><div class="amex-bar-amt">' + fmt(e[1]) + '</div></div>';
+  }).join('');
+
+  // Category bars (top 8)
+  var cats = {};
+  charges.forEach(function(r){ cats[r['Category']] = (cats[r['Category']]||0) + r['Amount']; });
+  var catMax = Math.max.apply(null, Object.values(cats));
+  var catEntries = Object.entries(cats).sort(function(a,b){ return b[1]-a[1]; }).slice(0,8);
+  document.getElementById('amex-cat-bars').innerHTML = catEntries.map(function(e){
+    return '<div class="amex-bar-row"><div class="amex-bar-label">' + e[0] + '</div><div class="amex-bar-track"><div class="amex-bar-fill" style="width:' + (e[1]/catMax*100).toFixed(1) + '%"></div></div><div class="amex-bar-amt">' + fmt(e[1]) + '</div></div>';
+  }).join('');
+
+  // Marketing detail
+  var mktRows = charges.filter(function(r){ return r['Category'] === 'Marketing'; });
+  var mktVendors = {};
+  mktRows.forEach(function(r){ var m = r['Merchant'] || r['Description']; m = m.split(' ')[0]; mktVendors[m] = (mktVendors[m]||0) + r['Amount']; });
+  document.getElementById('amex-marketing').innerHTML = '<div style="margin-bottom:10px;font-size:13px">Total: <strong>' + fmt(mktTotal) + '</strong> | ' + mktRows.length + ' transactions</div>' +
+    Object.entries(mktVendors).sort(function(a,b){ return b[1]-a[1]; }).map(function(e){
+      return '<div class="amex-bar-row"><div class="amex-bar-label">' + e[0] + '</div><div class="amex-bar-track"><div class="amex-bar-fill" style="background:#4d96ff;width:' + (e[1]/mktTotal*100).toFixed(1) + '%"></div></div><div class="amex-bar-amt">' + fmt(e[1]) + '</div></div>';
+    }).join('') +
+    '<div style="margin-top:12px;font-size:11px;color:var(--muted)">⏳ Google Ads data pending — ROI calc coming once connected</div>';
+
+  // Flags preview (top 8)
+  var fp = flagged.slice(0, 8);
+  document.getElementById('amex-flags-preview').innerHTML = fp.length ? fp.map(function(r){
+    return '<div class="amex-flag-row"><div class="amex-flag-desc"><div style="font-weight:600">' + (r['Merchant']||'').substring(0,35) + '</div><div style="color:var(--muted);margin-top:2px">' + r['Card Member'] + ' — ' + r['Date'] + '</div></div><div style="text-align:right"><div>' + fmt(r['Amount']) + '</div><div class="amex-flag-badge" style="margin-top:4px">' + (r['Flags']||'').split('|')[0].replace('⚠️','').trim() + '</div></div></div>';
+  }).join('') : '<div style="color:var(--muted);font-size:13px">No flags found.</div>';
+}
+
+function renderAmexEmployees() {
+  var charges = amexCharges();
+  var emp = {};
+  charges.forEach(function(r){ var k = r['Card Member'] + ' (' + r['Last 4'] + ')'; emp[k] = (emp[k]||0) + r['Amount']; });
+  var max = Math.max.apply(null, Object.values(emp));
+  document.getElementById('amex-emp-bars').innerHTML = Object.entries(emp).sort(function(a,b){ return b[1]-a[1]; }).map(function(e){
+    return '<div class="amex-bar-row"><div class="amex-bar-label" style="width:220px">' + e[0] + '</div><div class="amex-bar-track"><div class="amex-bar-fill" style="width:' + (e[1]/max*100).toFixed(1) + '%"></div></div><div class="amex-bar-amt">' + fmt(e[1]) + '</div></div>';
+  }).join('');
+}
+
+function renderAmexCategories() {
+  var charges = amexCharges();
+  var cats = {};
+  charges.forEach(function(r){ cats[r['Category']] = (cats[r['Category']]||0) + r['Amount']; });
+  var max = Math.max.apply(null, Object.values(cats));
+  document.getElementById('amex-allcat-bars').innerHTML = Object.entries(cats).sort(function(a,b){ return b[1]-a[1]; }).map(function(e){
+    return '<div class="amex-bar-row"><div class="amex-bar-label" style="width:200px">' + e[0] + '</div><div class="amex-bar-track"><div class="amex-bar-fill" style="width:' + (e[1]/max*100).toFixed(1) + '%"></div></div><div class="amex-bar-amt">' + fmt(e[1]) + '</div></div>';
+  }).join('');
+}
+
+function renderAmexFlags() {
+  var flagged = amexCharges().filter(function(r){ return r['Flags'] && !r['Flags'].match(/^Owner\/Family$/); });
+  document.getElementById('amex-flags-all').innerHTML = flagged.length ? flagged.map(function(r){
+    return '<div class="amex-flag-row"><div class="amex-flag-desc"><div style="font-weight:600">' + (r['Merchant']||'').substring(0,40) + '</div><div style="color:var(--muted);margin-top:2px">' + r['Card Member'] + ' · ' + r['Date'] + ' · ' + r['Division'] + '</div></div><div style="text-align:right;min-width:130px"><div style="font-weight:600">' + fmt(r['Amount']) + '</div><div class="amex-flag-badge" style="margin-top:4px">' + (r['Flags']||'').replace('⚠️','').trim() + '</div></div></div>';
+  }).join('') : '<div style="color:var(--muted)">No flags.</div>';
+}
+
+function populateAmexFilters() {
+  var cats = {}, divs = {};
+  amexRows.forEach(function(r){ if(r['Category']) cats[r['Category']]=1; if(r['Division']) divs[r['Division']]=1; });
+  var cs = document.getElementById('amex-filter-cat');
+  Object.keys(cats).sort().forEach(function(c){ var o=document.createElement('option'); o.value=c; o.textContent=c; cs.appendChild(o); });
+  var ds = document.getElementById('amex-filter-div');
+  Object.keys(divs).sort().forEach(function(d){ var o=document.createElement('option'); o.value=d; o.textContent=d; ds.appendChild(o); });
+}
+
+function renderAmexTable() {
+  var search = (document.getElementById('amex-search')||{value:''}).value.toLowerCase();
+  var typeF = (document.getElementById('amex-filter-type')||{value:''}).value;
+  var catF  = (document.getElementById('amex-filter-cat')||{value:''}).value;
+  var divF  = (document.getElementById('amex-filter-div')||{value:''}).value;
+  var filtered = amexRows.filter(function(r){
+    if (r['Amount'] < 0) return false; // hide payments in table
+    if (typeF && r['Type'] !== typeF) return false;
+    if (catF  && r['Category'] !== catF) return false;
+    if (divF  && r['Division'] !== divF) return false;
+    if (search) {
+      var s = ((r['Merchant']||'')+(r['Card Member']||'')+(r['Description']||'')+(r['Category']||'')).toLowerCase();
+      if (s.indexOf(search) === -1) return false;
+    }
+    return true;
+  });
+  var body = document.getElementById('amex-ledger-body');
+  body.innerHTML = filtered.slice(0, 300).map(function(r){
+    var flagBadge = r['Flags'] && r['Flags'] !== 'Owner/Family'
+      ? '<span class="amex-flag-badge">' + (r['Flags']||'').replace(/⚠️\s*/g,'').split('|')[0].trim() + '</span>' : '';
+    var typeBadge = r['Type'] === 'Business'
+      ? '<span class="badge-ok">Biz</span>'
+      : '<span class="badge-family">' + r['Type'] + '</span>';
+    return '<tr><td>' + r['Date'] + '</td><td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (r['Merchant']||'').substring(0,30) + '</td><td>' + r['Card Member'] + '</td><td>' + typeBadge + '</td><td>' + r['Division'] + '</td><td>' + r['Category'] + '</td><td style="text-align:right;font-weight:600">' + fmt(r['Amount']) + '</td><td>' + flagBadge + '</td></tr>';
+  }).join('');
+  document.getElementById('amex-ledger-footer').textContent = 'Showing ' + Math.min(filtered.length,300) + ' of ' + filtered.length + ' transactions';
+}
+// ─── END AMEX ─────────────────────────────────────────────────────────────────
+
 var fuelInvoiceRows = [];
 var fuelInvoiceFiltered = [];
 var fuelConsumptionRows = [];
@@ -788,11 +1051,13 @@ function showPage(page, el) {
   var fuelPage = document.getElementById('fuel-page');
   var dispPage = document.getElementById('disposal-page');
   var corrPage = document.getElementById('corrections-page');
+  var amexPage = document.getElementById('amex-page');
 
   receiptSections.forEach(function(s){ s.style.display = 'none'; });
   fuelPage.style.display = 'none';
   dispPage.style.display = 'none';
   if (corrPage) corrPage.style.display = 'none';
+  if (amexPage) amexPage.style.display = 'none';
 
   if (page === 'fuel') {
     fuelPage.style.display = 'block';
@@ -803,6 +1068,9 @@ function showPage(page, el) {
     if (!organicallyRows.length) loadOrganicallyData();
   } else if (page === 'corrections') {
     if (corrPage) { corrPage.style.display = 'block'; renderCorrectionsPage(); }
+  } else if (page === 'amex') {
+    document.getElementById('amex-page').style.display = 'block';
+    if (!amexRows.length) loadAmexData();
   } else {
     receiptSections.forEach(function(s){ s.style.display = ''; });
   }
