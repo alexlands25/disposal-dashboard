@@ -477,6 +477,47 @@
       .amex-chart-wrap-tall { height: 210px; }
       .chart-wrap { height: 160px; }
     }
+
+    /* ─── Swipe & Classify ─────────────────────────────── */
+    .amex-swipe-row { position:relative; transition:background .15s, transform .1s; user-select:none; }
+    .amex-swipe-row.swipe-right { background:rgba(255,107,107,.12) !important; }
+    .amex-swipe-row.swipe-left  { background:rgba(34,197,94,.12) !important; }
+    .swipe-hint { position:absolute; top:50%; transform:translateY(-50%); font-size:16px; font-weight:700; opacity:0; transition:opacity .15s; pointer-events:none; padding:0 12px; }
+    .swipe-hint-right { right:0; color:#ff6b6b; }
+    .swipe-hint-left  { left:0;  color:#22c55e; }
+    .amex-swipe-row.swipe-right .swipe-hint-right { opacity:1; }
+    .amex-swipe-row.swipe-left  .swipe-hint-left  { opacity:1; }
+    .amex-row-actions { display:flex; gap:4px; white-space:nowrap; }
+    .amex-act { padding:3px 9px; border-radius:5px; font-size:10px; font-weight:700; cursor:pointer; border:none; letter-spacing:.02em; }
+    .amex-act-personal { background:rgba(255,107,107,.15); color:#ff6b6b; }
+    .amex-act-dept     { background:rgba(34,197,94,.15);  color:#22c55e; }
+    .amex-act-split    { background:rgba(77,150,255,.15);  color:#4d96ff; }
+    .amex-status-ok   { display:inline-block; padding:2px 7px; border-radius:4px; font-size:10px; font-weight:600; background:rgba(34,197,94,.15); color:#22c55e; }
+    .amex-status-pers { display:inline-block; padding:2px 7px; border-radius:4px; font-size:10px; font-weight:600; background:rgba(255,107,107,.15); color:#ff6b6b; }
+
+    /* ─── Modals ─────────────────────────────────────────── */
+    .amex-modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.75); z-index:2000; display:none; align-items:center; justify-content:center; padding:16px; }
+    .amex-modal-overlay.open { display:flex; }
+    .amex-modal { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:22px; width:100%; max-width:420px; max-height:90vh; overflow-y:auto; }
+    .amex-modal-hdr { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; }
+    .amex-modal-hdr h3 { margin:0; font-size:15px; }
+    .amex-modal-close { background:none; border:none; color:var(--muted); font-size:22px; cursor:pointer; line-height:1; padding:0; }
+    .amex-modal-txn { font-size:12px; color:var(--muted); margin-bottom:16px; padding:10px 12px; background:var(--surface); border-radius:8px; }
+    .dept-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .dept-btn { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:10px 12px; text-align:left; cursor:pointer; font-size:12px; color:var(--text); transition:all .15s; }
+    .dept-btn:hover, .dept-btn.selected { border-color:#22c55e; color:#22c55e; background:rgba(34,197,94,.08); }
+    .split-row { display:flex; align-items:center; gap:8px; margin-bottom:9px; }
+    .split-dept-name { flex:1; font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .split-pct { width:64px; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:6px 8px; color:var(--text); font-size:13px; text-align:right; }
+    .split-pct:focus { outline:2px solid #4d96ff; outline-offset:0; }
+    .split-dollar { width:80px; text-align:right; font-size:12px; color:var(--muted); }
+    .split-total-bar { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-top:1px solid var(--border); margin-top:6px; font-size:13px; font-weight:600; }
+    .split-pct-total { font-size:20px; font-weight:700; }
+    .split-pct-total.valid { color:#22c55e; }
+    .split-pct-total.invalid { color:#ff6b6b; }
+    .amex-save-btn { width:100%; margin-top:14px; background:#22c55e; color:#000; border:none; border-radius:8px; padding:12px; font-size:14px; font-weight:700; cursor:pointer; border-radius:8px; }
+    .amex-save-btn:disabled { background:var(--surface); color:var(--muted); cursor:not-allowed; }
+    @media (max-width:480px) { .dept-grid { grid-template-columns:1fr; } .amex-modal { padding:16px; } }
   </style>
 </head>
 <body>
@@ -906,7 +947,7 @@
         <select id="amex-filter-div" onchange="renderAmexTable()"><option value="">All Divisions</option></select>
       </div>
       <div class="amex-table-wrap"><table class="amex-table" id="amex-ledger-table">
-        <thead><tr><th>Date</th><th>Merchant</th><th>Cardholder</th><th>Type</th><th>Division</th><th>Category</th><th>Amount</th><th>Flags</th></tr></thead>
+        <thead><tr><th>Date</th><th>Merchant</th><th>Cardholder</th><th>Type</th><th>Division</th><th>Category</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody id="amex-ledger-body"></tbody>
       </table></div>
       <div style="padding:10px 0; font-size:12px; color:var(--muted)" id="amex-ledger-footer"></div>
@@ -972,6 +1013,37 @@
 </div>
 
 </div><!-- /app -->
+
+<!-- DEPT PICKER MODAL -->
+<div class="amex-modal-overlay" id="amex-dept-modal">
+  <div class="amex-modal">
+    <div class="amex-modal-hdr">
+      <h3 id="amex-dept-modal-title">🏷️ Assign to Department</h3>
+      <button class="amex-modal-close" onclick="closeAmexModals()">×</button>
+    </div>
+    <div class="amex-modal-txn" id="amex-dept-txn-info"></div>
+    <div class="dept-grid" id="amex-dept-grid"></div>
+    <button class="amex-save-btn" style="background:#ff6b6b;color:#fff;margin-top:14px" onclick="markPersonalConfirm()" id="amex-mark-personal-btn">👤 Mark as Personal</button>
+  </div>
+</div>
+
+<!-- SPLIT MODAL -->
+<div class="amex-modal-overlay" id="amex-split-modal">
+  <div class="amex-modal">
+    <div class="amex-modal-hdr">
+      <h3>✂️ Split Across Departments</h3>
+      <button class="amex-modal-close" onclick="closeAmexModals()">×</button>
+    </div>
+    <div class="amex-modal-txn" id="amex-split-txn-info"></div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Enter % per department. Must total 100%.</div>
+    <div id="amex-split-rows"></div>
+    <div class="split-total-bar">
+      <span>Total</span>
+      <span class="split-pct-total invalid" id="amex-split-total">0%</span>
+    </div>
+    <button class="amex-save-btn" id="amex-split-save-btn" onclick="saveSplit()" disabled>Save Split</button>
+  </div>
+</div>
 
 <script>
 // ─── State ────────────────────────────────────────────────────────────────────
@@ -1353,13 +1425,173 @@ function populateAmexFilters() {
   Object.keys(divs).sort().forEach(function(d){ var o=document.createElement('option'); o.value=d; o.textContent=d; ds.appendChild(o); });
 }
 
+// ─── AMEX Classify & Split ─────────────────────────────────────────────
+var EPIC_DEPTS = ['Lawn Maintenance','Irrigation','Tree Trimming','Pest Control',
+  'Fleet','Holiday Lights','Grupo Anibal','Operations','Lighting','Grupo Ronald','Shared'];
+
+var amexActiveRowIndex = -1; // index into current filtered array
+var amexFilteredCache = []; // last rendered filtered rows
+var amexSplitData = {};     // dept -> pct during split editing
+
+function closeAmexModals() {
+  document.getElementById('amex-dept-modal').classList.remove('open');
+  document.getElementById('amex-split-modal').classList.remove('open');
+  amexActiveRowIndex = -1;
+}
+document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeAmexModals(); });
+
+function openDeptPicker(idx) {
+  amexActiveRowIndex = idx;
+  var r = amexFilteredCache[idx]; if (!r) return;
+  document.getElementById('amex-dept-txn-info').innerHTML =
+    '<strong>'+(r['Merchant']||r['Description']||'').substring(0,40)+'</strong><br>'
+    +r['Card Member']+' · '+r['Date']+' · <strong>'+fmt(r['Amount'])+'</strong>';
+  document.getElementById('amex-dept-modal-title').textContent = '🏷️ Assign to Department';
+  var grid = document.getElementById('amex-dept-grid');
+  grid.innerHTML = EPIC_DEPTS.map(function(d){
+    var sel = r['_dept']===d ? ' selected' : '';
+    return '<button class="dept-btn'+sel+'" onclick="assignDept(\''+d+'\')">'+d+'</button>';
+  }).join('');
+  document.getElementById('amex-mark-personal-btn').style.display = 'block';
+  document.getElementById('amex-dept-modal').classList.add('open');
+}
+
+function assignDept(dept) {
+  if (amexActiveRowIndex < 0) return;
+  var r = amexFilteredCache[amexActiveRowIndex];
+  r['_dept'] = dept;
+  r['_status'] = 'Reviewed';
+  r['Division'] = dept;
+  r['Status'] = 'Reviewed';
+  saveAmexRow(r, dept, 'Reviewed');
+  closeAmexModals();
+  renderAmexTable();
+}
+
+function markPersonalConfirm() {
+  if (amexActiveRowIndex < 0) return;
+  var r = amexFilteredCache[amexActiveRowIndex];
+  r['_status'] = 'Personal';
+  r['Status'] = 'Personal';
+  saveAmexRow(r, r['Division'], 'Personal');
+  closeAmexModals();
+  renderAmexTable();
+}
+
+function openSplitModal(idx) {
+  amexActiveRowIndex = idx;
+  var r = amexFilteredCache[idx]; if (!r) return;
+  document.getElementById('amex-split-txn-info').innerHTML =
+    '<strong>'+(r['Merchant']||r['Description']||'').substring(0,40)+'</strong><br>'
+    +r['Card Member']+' · '+r['Date']+' · <strong>'+fmt(r['Amount'])+'</strong>';
+  amexSplitData = {};
+  var container = document.getElementById('amex-split-rows');
+  container.innerHTML = EPIC_DEPTS.map(function(d, i){
+    return '<div class="split-row">'
+      +'<div class="split-dept-name">'+d+'</div>'
+      +'<input class="split-pct" type="number" min="0" max="100" step="1" value="0" id="split-pct-'+i+'" oninput="updateSplitTotals('+r['Amount']+')" />'
+      +'<div class="split-dollar" id="split-dollar-'+i+'">$0.00</div>'
+      +'</div>';
+  }).join('');
+  updateSplitTotals(r['Amount']);
+  document.getElementById('amex-split-modal').classList.add('open');
+}
+
+function updateSplitTotals(totalAmt) {
+  var sum = 0;
+  EPIC_DEPTS.forEach(function(d, i){
+    var el = document.getElementById('split-pct-'+i);
+    var pct = el ? parseFloat(el.value)||0 : 0;
+    sum += pct;
+    var dolEl = document.getElementById('split-dollar-'+i);
+    if (dolEl) dolEl.textContent = fmt(totalAmt * pct / 100);
+  });
+  var totalEl = document.getElementById('amex-split-total');
+  totalEl.textContent = sum.toFixed(0) + '%';
+  totalEl.className = 'split-pct-total ' + (Math.abs(sum-100)<0.5 ? 'valid' : 'invalid');
+  var saveBtn = document.getElementById('amex-split-save-btn');
+  saveBtn.disabled = Math.abs(sum-100) >= 0.5;
+}
+
+function saveSplit() {
+  if (amexActiveRowIndex < 0) return;
+  var r = amexFilteredCache[amexActiveRowIndex];
+  var splits = [];
+  EPIC_DEPTS.forEach(function(d, i){
+    var el = document.getElementById('split-pct-'+i);
+    var pct = el ? parseFloat(el.value)||0 : 0;
+    if (pct > 0) splits.push({dept: d, pct: pct, amt: r['Amount']*pct/100});
+  });
+  // Mark original row as split
+  r['_status'] = 'Split'; r['Status'] = 'Split';
+  r['Notes'] = 'Split: ' + splits.map(function(s){ return s.dept+' '+s.pct+'%'; }).join(', ');
+  saveAmexRow(r, r['Division'], 'Split', r['Notes']);
+  closeAmexModals();
+  renderAmexTable();
+  // Notify
+  setTimeout(function(){ alert('Split saved: '+splits.length+' departments. Sheet updated.'); }, 100);
+}
+
+function saveAmexRow(r, dept, status, notes) {
+  // Write back to Google Sheet via Apps Script
+  var payload = {
+    action: 'update_amex_row',
+    sheet_id: SHEET_ID,
+    match: { date: r['Date'], description: r['Description'], amount: r['Amount'] },
+    updates: { Division: dept||r['Division'], Status: status, Notes: notes||r['Notes']||'' }
+  };
+  fetch(APPS_SCRIPT_URL, {
+    method: 'POST', mode: 'no-cors',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(payload)
+  }).catch(function(e){ console.warn('Sheet write-back failed (no-cors expected):', e); });
+}
+
+// Swipe gesture handling
+var amexSwipeTouchStart = null;
+function attachSwipeListeners(tbody) {
+  var rows = tbody.querySelectorAll('tr.amex-swipe-row');
+  rows.forEach(function(row) {
+    var idx = parseInt(row.dataset.idx);
+    // Touch (mobile)
+    row.addEventListener('touchstart', function(e) {
+      amexSwipeTouchStart = {x: e.touches[0].clientX, y: e.touches[0].clientY};
+    }, {passive: true});
+    row.addEventListener('touchmove', function(e) {
+      if (!amexSwipeTouchStart) return;
+      var dx = e.touches[0].clientX - amexSwipeTouchStart.x;
+      var dy = e.touches[0].clientY - amexSwipeTouchStart.y;
+      if (Math.abs(dx) < Math.abs(dy)) return; // vertical scroll, ignore
+      row.classList.toggle('swipe-right', dx < -30);
+      row.classList.toggle('swipe-left',  dx >  30);
+    }, {passive: true});
+    row.addEventListener('touchend', function(e) {
+      if (!amexSwipeTouchStart) return;
+      var dx = e.changedTouches[0].clientX - amexSwipeTouchStart.x;
+      amexSwipeTouchStart = null;
+      row.classList.remove('swipe-right','swipe-left');
+      if (Math.abs(dx) > 60) {
+        if (dx > 0) openDeptPicker(idx);  // swipe right = assign dept
+        else markPersonalFromRow(idx);    // swipe left = personal
+      }
+    }, {passive: true});
+  });
+}
+
+function markPersonalFromRow(idx) {
+  var r = amexFilteredCache[idx]; if (!r) return;
+  r['_status'] = 'Personal'; r['Status'] = 'Personal';
+  saveAmexRow(r, r['Division'], 'Personal');
+  renderAmexTable();
+}
+
 function renderAmexTable() {
   var search = (document.getElementById('amex-search')||{value:''}).value.toLowerCase();
   var typeF = (document.getElementById('amex-filter-type')||{value:''}).value;
   var catF  = (document.getElementById('amex-filter-cat')||{value:''}).value;
   var divF  = (document.getElementById('amex-filter-div')||{value:''}).value;
   var filtered = amexRows.filter(function(r){
-    if (r['Amount'] < 0) return false; // hide payments in table
+    if (r['Amount'] < 0) return false;
     if (typeF && r['Type'] !== typeF) return false;
     if (catF  && r['Category'] !== catF) return false;
     if (divF  && r['Division'] !== divF) return false;
@@ -1369,16 +1601,40 @@ function renderAmexTable() {
     }
     return true;
   });
+  amexFilteredCache = filtered;
   var body = document.getElementById('amex-ledger-body');
-  body.innerHTML = filtered.slice(0, 300).map(function(r){
-    var flagBadge = r['Flags'] && r['Flags'] !== 'Owner/Family'
-      ? '<span class="amex-flag-badge">' + (r['Flags']||'').replace(/⚠️\s*/g,'').split('|')[0].trim() + '</span>' : '';
-    var typeBadge = r['Type'] === 'Business'
-      ? '<span class="badge-ok">Biz</span>'
-      : '<span class="badge-family">' + r['Type'] + '</span>';
-    return '<tr><td>' + r['Date'] + '</td><td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (r['Merchant']||'').substring(0,30) + '</td><td>' + r['Card Member'] + '</td><td>' + typeBadge + '</td><td>' + r['Division'] + '</td><td>' + r['Category'] + '</td><td style="text-align:right;font-weight:600">' + fmt(r['Amount']) + '</td><td>' + flagBadge + '</td></tr>';
+  body.innerHTML = filtered.slice(0, 300).map(function(r, idx){
+    var status = r['Status'] || r['_status'] || '';
+    var statusBadge = status === 'Reviewed' ? '<span class="amex-status-ok">✓ Reviewed</span>'
+      : status === 'Personal' ? '<span class="amex-status-pers">👤 Personal</span>'
+      : status === 'Split'    ? '<span class="amex-status-ok">✂️ Split</span>'
+      : '';
+    var flagBadge = r['Flags'] && !r['Flags'].match(/^Owner\/Family/)
+      ? '<span class="amex-flag-badge">'+(r['Flags']||'').replace(/⚠️\s*/g,'').split('|')[0].trim()+'</span>' : '';
+    var typeBadge = r['Type'] === 'Business' ? '<span class="badge-ok">Biz</span>'
+      : '<span class="badge-family">'+(r['Type']||'')+'</span>';
+    var actions = '<div class="amex-row-actions">'
+      +'<button class="amex-act amex-act-dept" onclick="openDeptPicker('+idx+')">Dept</button>'
+      +'<button class="amex-act amex-act-personal" onclick="markPersonalFromRow('+idx+')">Personal</button>'
+      +'<button class="amex-act amex-act-split" onclick="openSplitModal('+idx+')">Split</button>'
+      +'</div>';
+    return '<tr class="amex-swipe-row" data-idx="'+idx+'">'
+      +'<td>'+r['Date']+'</td>'
+      +'<td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(r['Merchant']||'').substring(0,28)+'</td>'
+      +'<td style="white-space:nowrap">'+r['Card Member']+'</td>'
+      +'<td>'+typeBadge+'</td>'
+      +'<td>'+r['Division']+'</td>'
+      +'<td>'+r['Category']+'</td>'
+      +'<td style="text-align:right;font-weight:600">'+fmt(r['Amount'])+'</td>'
+      +'<td>'+statusBadge+flagBadge+'</td>'
+      +'<td>'+actions+'</td>'
+      +'<span class="swipe-hint swipe-hint-left">✓ Dept</span>'
+      +'<span class="swipe-hint swipe-hint-right">👤 Personal</span>'
+      +'</tr>';
   }).join('');
-  document.getElementById('amex-ledger-footer').textContent = 'Showing ' + Math.min(filtered.length,300) + ' of ' + filtered.length + ' transactions';
+  document.getElementById('amex-ledger-footer').textContent = 'Showing '+Math.min(filtered.length,300)+' of '+filtered.length+' — swipe → personal | swipe ← dept';
+  // Attach swipe listeners
+  attachSwipeListeners(body);
 }
 // ─── END AMEX ─────────────────────────────────────────────────────────────────
 
