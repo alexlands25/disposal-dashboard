@@ -868,19 +868,32 @@ function loadAmexData() {
   var url = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:json&sheet=' + encodeURIComponent('AMEX');
   fetch(url).then(function(r){ return r.text(); }).then(function(text) {
     var json = JSON.parse(text.replace(/^[^{]+/, '').replace(/;?\s*$/, ''));
-    var cols = json.table.cols.map(function(c){ return c.label; });
+    // Fixed column indices (order matches AMEX tab headers)
+    // 0:Date 1:Description 2:Merchant 3:CardMember 4:Last4 5:Type 6:Division 7:Amount 8:Category 9:TX 10:Flags 11:Status 12:Receipt 13:Notes
     amexRows = [];
     json.table.rows.forEach(function(row) {
-      var obj = {};
-      cols.forEach(function(col, i) {
-        obj[col] = row.c[i] && row.c[i].v !== null ? row.c[i].v : '';
+      if (!row.c || row.c.length < 8) return;
+      var getVal = function(i) { return row.c[i] ? (row.c[i].f || row.c[i].v || '') : ''; };
+      var amt = row.c[7] ? parseFloat(row.c[7].v) : null;
+      if (amt === null || isNaN(amt)) return;
+      amexRows.push({
+        'Date':        getVal(0),
+        'Description': getVal(1),
+        'Merchant':    getVal(2),
+        'Card Member': getVal(3),
+        'Last 4':      getVal(4),
+        'Type':        getVal(5),
+        'Division':    getVal(6),
+        'Amount':      amt,
+        'Category':    getVal(8),
+        'TX':          getVal(9),
+        'Flags':       getVal(10),
+        'Status':      getVal(11),
+        'Receipt':     getVal(12),
+        'Notes':       getVal(13),
       });
-      // Skip header row if duplicated
-      if (obj['Date'] === 'Date') return;
-      if (!obj['Amount'] && obj['Amount'] !== 0) return;
-      obj['Amount'] = parseFloat(obj['Amount']) || 0;
-      amexRows.push(obj);
     });
+    if (!amexRows.length) { console.warn('AMEX: no rows parsed'); return; }
     renderAmexOverview();
     populateAmexFilters();
   }).catch(function(e){ console.error('AMEX load error', e); });
