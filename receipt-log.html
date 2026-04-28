@@ -529,7 +529,7 @@
       <div class="logo">🧾</div>
       <div class="header-title">
         <h1>Epic Receipt Log</h1>
-        <p>Operational Expense Tracking — Epic Landscaping &nbsp;<span style="background:rgba(34,197,94,.15);color:#22c55e;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.04em">v3.0.5</span></p>
+        <p>Operational Expense Tracking — Epic Landscaping &nbsp;<span style="background:rgba(34,197,94,.15);color:#22c55e;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.04em">v3.1.0</span></p>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:10px">
@@ -762,13 +762,19 @@
 <!-- ───────────────── DISPOSAL PAGE ───────────────── -->
 <div id="disposal-page">
 
-  <!-- Year + Group Filters -->
-  <div class="filter-row" style="margin-bottom:12px">
-    <div class="filter-group" id="disp-year-chips">
-      <div class="chip" data-year="2024" onclick="setDispYear('2024',this)">2024</div>
-      <div class="chip" data-year="2025" onclick="setDispYear('2025',this)">2025</div>
-      <div class="chip active" data-year="2026" onclick="setDispYear('2026',this)">2026</div>
-      <div class="chip" data-year="all" onclick="setDispYear('all',this)">All Time</div>
+  <!-- Date Range Filter -->
+  <div class="filter-row" style="margin-bottom:8px;flex-wrap:wrap;gap:8px">
+    <div class="filter-group" id="disp-period-chips">
+      <div class="chip" onclick="setDispPeriod('today',this)">Today</div>
+      <div class="chip" onclick="setDispPeriod('week',this)">This Week</div>
+      <div class="chip" onclick="setDispPeriod('month',this)">This Month</div>
+      <div class="chip active" onclick="setDispPeriod('year',this)">This Year</div>
+      <div class="chip" onclick="setDispPeriod('all',this)">All Time</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;margin-left:auto">
+      <input type="date" id="disp-date-from" style="background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:4px 8px;font-size:12px" onchange="setDispCustomRange()" />
+      <span style="color:var(--muted);font-size:12px">→</span>
+      <input type="date" id="disp-date-to" style="background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:4px 8px;font-size:12px" onchange="setDispCustomRange()" />
     </div>
   </div>
   <div class="filter-row" style="margin-bottom:20px">
@@ -822,7 +828,7 @@
       <div class="chart-wrap"><canvas id="chart-disp-dept"></canvas></div>
     </div>
     <div class="chart-card wide" style="grid-column:span 2" onclick="openChartModal('chart-disp-org-cost','Monthly Organically Cost')">
-      <div class="chart-title">💰 Monthly Cost (Organically) vs 🏠 HQ Yards — curved combo</div>
+      <div class="chart-title">📊 Monthly Yards — Organically vs Epic HQ</div>
       <div class="chart-wrap"><canvas id="chart-disp-org-cost"></canvas></div>
     </div>
   </div>
@@ -1833,6 +1839,8 @@ var hqRows = [];
 var disposalFiltered = [];
 var organicallyRows = [];
 var dispYearFilter = '2026';
+var dispDateFrom = null;
+var dispDateTo = null;
 var chartDispMonths = null, chartDispTruck = null, chartDispDeptNew = null, chartDispOrgCost = null;
 var chartDispDept;
 
@@ -1921,22 +1929,56 @@ function renderDisposalPage() {
 }
 
 function setDispYear(yr, el) {
-  dispYearFilter = yr;
+  dispYearFilter = yr; dispDateFrom = null; dispDateTo = null;
   document.querySelectorAll('#disp-year-chips .chip').forEach(function(c){ c.classList.remove('active'); });
-  el.classList.add('active');
+  if(el) el.classList.add('active');
+  renderDisposalAnalytics();
+}
+function setDispPeriod(period, el) {
+  document.querySelectorAll('#disp-period-chips .chip').forEach(function(c){ c.classList.remove('active'); });
+  if(el) el.classList.add('active');
+  var now = new Date();
+  var pad = function(n){ return n<10?'0'+n:String(n); };
+  var fmt = function(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); };
+  dispDateFrom = null; dispDateTo = null; dispYearFilter = 'all';
+  if (period === 'today') {
+    dispDateFrom = dispDateTo = fmt(now);
+  } else if (period === 'week') {
+    var mon = new Date(now); mon.setDate(now.getDate() - now.getDay() + 1);
+    dispDateFrom = fmt(mon); dispDateTo = fmt(now);
+  } else if (period === 'month') {
+    dispDateFrom = now.getFullYear()+'-'+pad(now.getMonth()+1)+'-01';
+    dispDateTo = fmt(now);
+  } else if (period === 'year') {
+    dispDateFrom = now.getFullYear()+'-01-01'; dispDateTo = fmt(now);
+  }
+  var fi = document.getElementById('disp-date-from'), ti = document.getElementById('disp-date-to');
+  if(fi) fi.value = dispDateFrom||''; if(ti) ti.value = dispDateTo||'';
+  renderDisposalAnalytics();
+}
+function setDispCustomRange() {
+  var fi = document.getElementById('disp-date-from'), ti = document.getElementById('disp-date-to');
+  dispDateFrom = fi ? fi.value : null; dispDateTo = ti ? ti.value : null;
+  dispYearFilter = 'all';
+  document.querySelectorAll('#disp-period-chips .chip').forEach(function(c){ c.classList.remove('active'); });
   renderDisposalAnalytics();
 }
 
+function dispDateOk(r) {
+  var d = (r['Date']||r['Processed Date']||'').slice(0,10);
+  if (dispDateFrom || dispDateTo) {
+    if (dispDateFrom && d < dispDateFrom) return false;
+    if (dispDateTo && d > dispDateTo) return false;
+    return true;
+  }
+  return dispYearFilter === 'all' || d.includes(dispYearFilter);
+}
 function dispFilteredRows() {
   return disposalRows.filter(function(r) {
-    var yearOk = dispYearFilter === 'all' ||
-      (r['Date']||'').includes(dispYearFilter) ||
-      (r['Processed Date']||'').includes(dispYearFilter);
     var grp = r['Group'] || r['Department'] || '';
     var grpOk = dispGroupFilter === 'all' || grp === dispGroupFilter;
-    // Exclude internal HQ forms from main stats/charts (they show in HQ section)
     var notHQ = r['Type'] !== 'internal_form' && !(r['Client']||'').toUpperCase().includes('EPIC');
-    return yearOk && grpOk && notHQ;
+    return dispDateOk(r) && grpOk && notHQ;
   });
 }
 
@@ -2155,40 +2197,44 @@ function renderDisposalAnalytics() {
     var m = d.slice(0,7); if (!m) return;
     hqByMonth[m] = (hqByMonth[m]||0) + (parseFloat(r['Yards'])||0);
   });
-  // Union of all months from both datasets, last 12
-  var allMonths = Array.from(new Set(Object.keys(orgByMonth).concat(Object.keys(hqByMonth)))).sort().slice(-12);
+  // Build Organically yards by month (from disposal tickets, not invoices)
+  var orgYardsByMonth = {};
+  rows.forEach(function(r){
+    var d = r['Date']||r['Processed Date']||''; var m = d.slice(0,7); if(!m) return;
+    orgYardsByMonth[m] = (orgYardsByMonth[m]||0) + (parseFloat(r['Yards'])||0);
+  });
+  // Union all months, sorted
+  var allMonths = Array.from(new Set(Object.keys(orgYardsByMonth).concat(Object.keys(hqByMonth)))).sort();
   var ctx4 = document.getElementById('chart-disp-org-cost').getContext('2d');
   if (chartDispOrgCost) chartDispOrgCost.destroy();
   chartDispOrgCost = new Chart(ctx4, {
     type:'line',
     data:{ labels: allMonths,
       datasets:[
-        { label:'$ Organically (Los Tomates)', data: allMonths.map(function(k){return orgByMonth[k]||0;}),
-          borderColor:'#a855f7', backgroundColor:'rgba(168,85,247,.12)', fill:true,
-          tension:0.4, pointRadius:4, pointHoverRadius:6, borderWidth:2, yAxisID:'y' },
-        { label:'HQ Yards (Epic Dump)', data: allMonths.map(function(k){return hqByMonth[k]||0;}),
-          borderColor:'#fbbf24', backgroundColor:'rgba(251,191,36,.08)', fill:true,
-          tension:0.4, pointRadius:4, pointHoverRadius:6, borderWidth:2, borderDash:[5,3], yAxisID:'y2' }
+        { label:'💪 Organically Yards (Tomates)', data: allMonths.map(function(k){return orgYardsByMonth[k]||0;}),
+          borderColor:'#a855f7', backgroundColor:'rgba(168,85,247,.15)', fill:true,
+          tension:0.4, pointRadius:4, pointHoverRadius:7, borderWidth:2.5 },
+        { label:'🏠 Epic HQ Yards', data: allMonths.map(function(k){return hqByMonth[k]||0;}),
+          borderColor:'#fbbf24', backgroundColor:'rgba(251,191,36,.1)', fill:true,
+          tension:0.4, pointRadius:4, pointHoverRadius:7, borderWidth:2.5 }
       ]},
     options:{ responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{display:true, labels:{color:'#94a3b8',font:{family:'DM Sans',size:11},boxWidth:12}}, tooltip:{mode:'index',intersect:false} },
+      interaction:{ mode:'index', intersect:false },
+      plugins:{ legend:{display:true, labels:{color:'#cbd5e1',font:{family:'DM Sans',size:12},boxWidth:14,padding:16}},
+        tooltip:{callbacks:{label:function(ctx){return ' '+ctx.dataset.label+': '+ctx.parsed.y.toFixed(0)+' yds';}}} },
       scales:{
-        x:{ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,.05)'}},
-        y:{position:'left', ticks:{color:'#a855f7',callback:function(v){return '$'+v.toLocaleString();}}, grid:{color:'rgba(255,255,255,.05)'}},
-        y2:{position:'right', ticks:{color:'#fbbf24',callback:function(v){return v+' yds';}}, grid:{drawOnChartArea:false}}
+        x:{ticks:{color:'#94a3b8',font:{family:'DM Sans',size:11}},grid:{color:'rgba(255,255,255,.04)'}},
+        y:{ticks:{color:'#94a3b8',callback:function(v){return v+' yds';}},grid:{color:'rgba(255,255,255,.04)'},beginAtZero:true}
       } }
   });
-  registerChart('chart-disp-org-cost','Monthly Cost vs HQ Yards',chartDispOrgCost.config.type,chartDispOrgCost.config.data,chartDispOrgCost.config.options);
+  registerChart('chart-disp-org-cost','Monthly Yards: Organically vs Epic HQ',chartDispOrgCost.config.type,chartDispOrgCost.config.data,chartDispOrgCost.config.options);
 
   // --- Epic HQ --- search ALL disposal rows (internal_form excluded from main stats)
   hqRows = disposalRows.filter(function(r){
-    var yearOk = dispYearFilter === 'all' ||
-      (r['Date']||'').includes(dispYearFilter) ||
-      (r['Processed Date']||'').includes(dispYearFilter);
     var grp = r['Group'] || r['Department'] || '';
     var grpOk = dispGroupFilter === 'all' || grp === dispGroupFilter;
     var isHQ = r['Type']==='internal_form' || (r['Client']||'').toUpperCase().includes('EPIC');
-    return isHQ && yearOk && grpOk;
+    return isHQ && dispDateOk(r) && grpOk;
   });
   var hqYards = 0; hqRows.forEach(function(r){ hqYards += parseFloat(r['Yards'])||0; });
   var hqCost = costPerYard > 0 ? (hqYards * parseFloat(costPerYard)) : 0;
