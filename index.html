@@ -1210,6 +1210,7 @@ function loadAmexData() {
       });
     });
     if (!amexRows.length) { console.warn('AMEX: no rows parsed'); return; }
+    applyStoredClassifications();
     renderAmexOverview();
     populateAmexFilters();
   }).catch(function(e){ console.error('AMEX load error', e); });
@@ -1459,6 +1460,38 @@ var EPIC_DEPTS = ['Lawn Maintenance','Irrigation','Tree Trimming','Pest Control'
 var amexActiveRowIndex = -1; // index into current filtered array
 var amexFilteredCache = []; // last rendered filtered rows
 var amexSplitData = {};     // dept -> pct during split editing
+var AMEX_STORAGE_KEY = 'epic_amex_classifications';
+
+// Load saved classifications from localStorage
+function loadAmexClassifications() {
+  try {
+    return JSON.parse(localStorage.getItem(AMEX_STORAGE_KEY) || '{}');
+  } catch(e) { return {}; }
+}
+
+// Save a classification to localStorage
+function persistClassification(r, division, status, notes) {
+  var key = (r['Date']||'') + '|' + (r['Description']||'').substring(0,40) + '|' + r['Amount'];
+  var saved = loadAmexClassifications();
+  saved[key] = { division: division, status: status, notes: notes||'' };
+  localStorage.setItem(AMEX_STORAGE_KEY, JSON.stringify(saved));
+}
+
+// Apply saved classifications to loaded rows
+function applyStoredClassifications() {
+  var saved = loadAmexClassifications();
+  if (!Object.keys(saved).length) return;
+  amexRows.forEach(function(r) {
+    var key = (r['Date']||'') + '|' + (r['Description']||'').substring(0,40) + '|' + r['Amount'];
+    if (saved[key]) {
+      r['Division'] = saved[key].division || r['Division'];
+      r['Status']   = saved[key].status;
+      r['_status']  = saved[key].status;
+      r['_dept']    = saved[key].division || r['Division'];
+      if (saved[key].notes) r['Notes'] = saved[key].notes;
+    }
+  });
+}
 
 function closeAmexModals() {
   document.getElementById('amex-dept-modal').classList.remove('open');
@@ -1486,10 +1519,9 @@ function openDeptPicker(idx) {
 function assignDept(dept) {
   if (amexActiveRowIndex < 0) return;
   var r = amexFilteredCache[amexActiveRowIndex];
-  r['_dept'] = dept;
-  r['_status'] = 'Reviewed';
-  r['Division'] = dept;
-  r['Status'] = 'Reviewed';
+  r['_dept'] = dept; r['_status'] = 'Reviewed';
+  r['Division'] = dept; r['Status'] = 'Reviewed';
+  persistClassification(r, dept, 'Reviewed', r['Notes']);
   saveAmexRow(r, dept, 'Reviewed');
   closeAmexModals();
   renderAmexTable();
@@ -1498,8 +1530,8 @@ function assignDept(dept) {
 function markPersonalConfirm() {
   if (amexActiveRowIndex < 0) return;
   var r = amexFilteredCache[amexActiveRowIndex];
-  r['_status'] = 'Personal';
-  r['Status'] = 'Personal';
+  r['_status'] = 'Personal'; r['Status'] = 'Personal';
+  persistClassification(r, r['Division'], 'Personal', r['Notes']);
   saveAmexRow(r, r['Division'], 'Personal');
   closeAmexModals();
   renderAmexTable();
@@ -1552,6 +1584,7 @@ function saveSplit() {
   // Mark original row as split
   r['_status'] = 'Split'; r['Status'] = 'Split';
   r['Notes'] = 'Split: ' + splits.map(function(s){ return s.dept+' '+s.pct+'%'; }).join(', ');
+  persistClassification(r, r['Division'], 'Split', r['Notes']);
   saveAmexRow(r, r['Division'], 'Split', r['Notes']);
   closeAmexModals();
   renderAmexTable();
@@ -1621,6 +1654,7 @@ function bulkReclassify() {
     if (dept) { r['Division'] = dept; r['_dept'] = dept; }
     if (type) { r['Type'] = type; }
     r['Status'] = 'Reviewed'; r['_status'] = 'Reviewed';
+    persistClassification(r, dept||r['Division'], 'Reviewed', r['Notes']);
     saveAmexRow(r, dept||r['Division'], 'Reviewed');
   });
   preview.style.color='#22c55e';
@@ -1633,6 +1667,7 @@ function bulkReclassify() {
 function markPersonalFromRow(idx) {
   var r = amexFilteredCache[idx]; if (!r) return;
   r['_status'] = 'Personal'; r['Status'] = 'Personal';
+  persistClassification(r, r['Division'], 'Personal', r['Notes']);
   saveAmexRow(r, r['Division'], 'Personal');
   renderAmexTable();
 }
