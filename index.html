@@ -1592,19 +1592,20 @@ function saveSplit() {
   setTimeout(function(){ alert('Split saved: '+splits.length+' departments. Sheet updated.'); }, 100);
 }
 
+var AMEX_SYNC_URL = 'http://192.168.0.27:18803'; // Mac mini sync server
+
 function saveAmexRow(r, dept, status, notes) {
-  // Write back to Google Sheet via Apps Script
   var payload = {
-    action: 'update_amex_row',
-    sheet_id: SHEET_ID,
     match: { date: r['Date'], description: r['Description'], amount: r['Amount'] },
     updates: { Division: dept||r['Division'], Status: status, Notes: notes||r['Notes']||'' }
   };
-  fetch(APPS_SCRIPT_URL, {
-    method: 'POST', mode: 'no-cors',
+  fetch(AMEX_SYNC_URL, {
+    method: 'POST',
     headers: {'Content-Type':'application/json'},
     body: JSON.stringify(payload)
-  }).catch(function(e){ console.warn('Sheet write-back failed (no-cors expected):', e); });
+  }).then(function(res){ return res.json(); })
+    .then(function(d){ console.log('[AMEX-SYNC] Sheet update:', d.status, d.row||''); })
+    .catch(function(e){ console.warn('[AMEX-SYNC] Offline or unreachable — saved to localStorage only'); });
 }
 
 // Swipe gesture handling
