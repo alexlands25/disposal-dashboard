@@ -529,7 +529,7 @@
       <div class="logo">🧾</div>
       <div class="header-title">
         <h1>Epic Receipt Log</h1>
-        <p>Operational Expense Tracking — Epic Landscaping &nbsp;<span style="background:rgba(34,197,94,.15);color:#22c55e;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.04em">v3.0.1</span></p>
+        <p>Operational Expense Tracking — Epic Landscaping &nbsp;<span style="background:rgba(34,197,94,.15);color:#22c55e;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.04em">v3.0.2</span></p>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:10px">
@@ -783,8 +783,8 @@
   <!-- Disposal dept charts -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px" id="disp-charts-row">
     <div class="card" style="padding:14px">
-      <div style="font-weight:600;font-size:13px;margin-bottom:10px">🗑️ Yards by Group</div>
-      <div style="height:200px;position:relative"><canvas id="chart-disp-pie"></canvas></div>
+      <div style="font-weight:600;font-size:13px;margin-bottom:10px">🏠 Epic HQ Dumps — by Group</div>
+      <div style="height:200px;position:relative"><canvas id="chart-disp-hq"></canvas></div>
     </div>
     <div class="card" style="padding:14px">
       <div style="font-weight:600;font-size:13px;margin-bottom:10px">📊 Loads by Group</div>
@@ -1828,6 +1828,7 @@ var fuelReconRows = [];
 var chartFuelBar, chartFuelDept;
 
 var disposalRows = [];
+var hqRows = [];
 var disposalFiltered = [];
 var organicallyRows = [];
 var dispYearFilter = '2026';
@@ -2157,7 +2158,7 @@ function renderDisposalAnalytics() {
   registerChart('chart-disp-org-cost','Monthly Organically Cost',chartDispOrgCost.config.type,chartDispOrgCost.config.data,chartDispOrgCost.config.options);
 
   // --- Epic HQ --- search ALL disposal rows (internal_form excluded from main stats)
-  var hqRows = disposalRows.filter(function(r){
+  hqRows = disposalRows.filter(function(r){
     var yearOk = dispYearFilter === 'all' ||
       (r['Date']||'').includes(dispYearFilter) ||
       (r['Processed Date']||'').includes(dispYearFilter);
@@ -2193,19 +2194,25 @@ function renderDisposalCharts() {
 
   var DISP_COLORS = { 'Mantenimiento':'#22c55e', 'Tree Trimming':'#3b82f6', 'Basura Rastra':'#f97316' };
 
-  // Pie chart
-  var ctx1 = document.getElementById('chart-disp-pie');
-  if (!ctx1) return;
-  if (window.chartDispPie) window.chartDispPie.destroy();
-  var labels1 = Object.keys(byGroup);
-  window.chartDispPie = new Chart(ctx1.getContext('2d'), {
-    type: 'doughnut',
-    data: {
-      labels: labels1.map(function(g){ return g + ' — ' + (byGroup[g]||0).toFixed(0) + ' yds'; }),
-      datasets: [{ data: labels1.map(function(g){ return byGroup[g]||0; }), backgroundColor: labels1.map(function(g){ return DISP_COLORS[g]||'#64748b'; }), borderColor:'#273449', borderWidth:2 }]
-    },
-    options: { responsive:true, maintainAspectRatio:false, cutout:'55%', plugins:{ legend:{display:true, position:'bottom', labels:{color:'#94a3b8',font:{family:'DM Sans',size:11},boxWidth:12,padding:8}}, tooltip:{callbacks:{label:function(ctx){return ' '+(ctx.parsed).toFixed(0)+' yards';}}} } }
+  // HQ Donut chart (replaces duplicate group donut)
+  var hqByGrp = {};
+  hqRows.forEach(function(r){
+    var g = r['Group'] || r['Department'] || 'Unknown';
+    hqByGrp[g] = (hqByGrp[g]||0) + (parseFloat(r['Yards'])||0);
   });
+  var ctxHQ = document.getElementById('chart-disp-hq');
+  if (ctxHQ) {
+    if (window.chartDispHQ) window.chartDispHQ.destroy();
+    var hqLabels = Object.keys(hqByGrp);
+    window.chartDispHQ = new Chart(ctxHQ.getContext('2d'), {
+      type: 'doughnut',
+      data: {
+        labels: hqLabels.map(function(g){ return g + ' — ' + (hqByGrp[g]||0).toFixed(0) + ' yds'; }),
+        datasets: [{ data: hqLabels.map(function(g){ return hqByGrp[g]||0; }), backgroundColor: hqLabels.map(function(g){ return DISP_COLORS[g]||'#64748b'; }), borderColor:'#1e293b', borderWidth:2 }]
+      },
+      options: { responsive:true, maintainAspectRatio:false, cutout:'55%', plugins:{ legend:{display:true, position:'bottom', labels:{color:'#94a3b8',font:{family:'DM Sans',size:11},boxWidth:12,padding:8}}, tooltip:{callbacks:{label:function(ctx){return ' '+(ctx.parsed).toFixed(0)+' yards';}}} } }
+    });
+  }
 
   // Bar chart
   var ctx2 = document.getElementById('chart-disp-bar');
