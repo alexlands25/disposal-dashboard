@@ -529,7 +529,7 @@
       <div class="logo">🧾</div>
       <div class="header-title">
         <h1>Epic Receipt Log</h1>
-        <p>Operational Expense Tracking — Epic Landscaping &nbsp;<span style="background:rgba(34,197,94,.15);color:#22c55e;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.04em">v3.0.0</span></p>
+        <p>Operational Expense Tracking — Epic Landscaping &nbsp;<span style="background:rgba(34,197,94,.15);color:#22c55e;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.04em">v3.0.1</span></p>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:10px">
@@ -2156,9 +2156,15 @@ function renderDisposalAnalytics() {
   });
   registerChart('chart-disp-org-cost','Monthly Organically Cost',chartDispOrgCost.config.type,chartDispOrgCost.config.data,chartDispOrgCost.config.options);
 
-  // --- Epic HQ --- (internal_form type OR Client=EPIC)
-  var hqRows = rows.filter(function(r){
-    return r['Type']==='internal_form' || (r['Client']||'').toUpperCase().includes('EPIC');
+  // --- Epic HQ --- search ALL disposal rows (internal_form excluded from main stats)
+  var hqRows = disposalRows.filter(function(r){
+    var yearOk = dispYearFilter === 'all' ||
+      (r['Date']||'').includes(dispYearFilter) ||
+      (r['Processed Date']||'').includes(dispYearFilter);
+    var grp = r['Group'] || r['Department'] || '';
+    var grpOk = dispGroupFilter === 'all' || grp === dispGroupFilter;
+    var isHQ = r['Type']==='internal_form' || (r['Client']||'').toUpperCase().includes('EPIC');
+    return isHQ && yearOk && grpOk;
   });
   var hqYards = 0; hqRows.forEach(function(r){ hqYards += parseFloat(r['Yards'])||0; });
   var hqCost = costPerYard > 0 ? (hqYards * parseFloat(costPerYard)) : 0;
