@@ -529,7 +529,7 @@
       <div class="logo">🧾</div>
       <div class="header-title">
         <h1>Epic Receipt Log</h1>
-        <p>Operational Expense Tracking — Epic Landscaping &nbsp;<span style="background:rgba(34,197,94,.15);color:#22c55e;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.04em">v2.5.0</span></p>
+        <p>Operational Expense Tracking — Epic Landscaping &nbsp;<span style="background:rgba(34,197,94,.15);color:#22c55e;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.04em">v2.6.0</span></p>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:10px">
@@ -762,13 +762,21 @@
 <!-- ───────────────── DISPOSAL PAGE ───────────────── -->
 <div id="disposal-page">
 
-  <!-- Year Filter -->
-  <div class="filter-row" style="margin-bottom:20px">
+  <!-- Year + Group Filters -->
+  <div class="filter-row" style="margin-bottom:12px">
     <div class="filter-group" id="disp-year-chips">
       <div class="chip" data-year="2024" onclick="setDispYear('2024',this)">2024</div>
       <div class="chip" data-year="2025" onclick="setDispYear('2025',this)">2025</div>
       <div class="chip active" data-year="2026" onclick="setDispYear('2026',this)">2026</div>
       <div class="chip" data-year="all" onclick="setDispYear('all',this)">All Time</div>
+    </div>
+  </div>
+  <div class="filter-row" style="margin-bottom:20px">
+    <div class="filter-group" id="disp-group-chips">
+      <div class="chip active" data-group="all" onclick="setDispGroup('all',this)">🗑️ Todos</div>
+      <div class="chip" data-group="Mantenimiento" onclick="setDispGroup('Mantenimiento',this)" style="border-color:#3b82f6">🟢 Mantenimiento</div>
+      <div class="chip" data-group="Tree Trimming" onclick="setDispGroup('Tree Trimming',this)" style="border-color:#22c55e">🌳 Tree Trimming</div>
+      <div class="chip" data-group="Basura Rastra" onclick="setDispGroup('Basura Rastra',this)" style="border-color:#f97316">🚛 Basura Rastra</div>
     </div>
   </div>
 
@@ -1849,25 +1857,47 @@ function showPage(page, el) {
   }
 }
 
+var dispGroupFilter = 'all';
+var DISPOSAL_SHEETS = [
+  { id: '1AC31GJeSitF6xosFMuNznlkbzLt_IOPu8exybfYqjWQ', group: 'Mantenimiento' },
+  { id: '1ycaxfDArI9olmkcZhEDQPTKHZEHXJ-z04VPCJK_EJgs', group: 'Tree Trimming' },
+  { id: '1IrJa4v1DsNA9FH1i-9RuZbPSDcw2w489ITeZUVgubfE', group: 'Basura Rastra' }
+];
+
+function setDispGroup(grp, el) {
+  dispGroupFilter = grp;
+  document.querySelectorAll('#disp-group-chips .chip').forEach(function(c){ c.classList.remove('active'); });
+  el.classList.add('active');
+  renderDisposalAnalytics();
+  renderDisposalTable();
+}
+
 function loadDisposalData() {
-  var url = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:json&sheet=' + encodeURIComponent('Disposal');
-  fetch(url).then(function(r){ return r.text(); }).then(function(text){
-    var json = text.replace(/^\/\*[^*]*\*\/\s*/,'').replace(/^[^(]*\(/,'').replace(/\);?\s*$/,'');
-    var gviz = JSON.parse(json);
-    var cols = gviz.table.cols.map(function(c){ return c.label; });
-    disposalRows = (gviz.table.rows||[]).map(function(row){
-      var obj={};
-      row.c.forEach(function(cell,i){ obj[cols[i]] = cell ? (cell.f||cell.v||'') : ''; });
-      return obj;
-    }).filter(function(r){ return r['Receipt #'] || r['Date']; });
+  var promises = DISPOSAL_SHEETS.map(function(sheet) {
+    var url = 'https://docs.google.com/spreadsheets/d/' + sheet.id + '/gviz/tq?tqx=out:json';
+    return fetch(url).then(function(r){ return r.text(); }).then(function(text){
+      var json = text.replace(/^\/\*[^*]*\*\/\s*/,'').replace(/^[^(]*\(/,'').replace(/\);?\s*$/,'');
+      var gviz = JSON.parse(json);
+      var cols = gviz.table.cols.map(function(c){ return c.label; });
+      return (gviz.table.rows||[]).map(function(row){
+        var obj = { _group: sheet.group };
+        row.c.forEach(function(cell,i){ obj[cols[i]] = cell ? (cell.f||cell.v||'') : ''; });
+        return obj;
+      }).filter(function(r){ return r['Receipt #'] || r['Date']; });
+    }).catch(function(){ return []; });
+  });
+
+  Promise.all(promises).then(function(results) {
+    disposalRows = [].concat.apply([], results);
+    // Sort by date desc
+    disposalRows.sort(function(a,b){
+      var da = new Date(a['Date']||0), db = new Date(b['Date']||0);
+      return db - da;
+    });
     disposalFiltered = disposalRows.slice();
     renderDisposalPage();
   }).catch(function(e){
-    document.getElementById('disp-body').innerHTML = '<tr><td colspan="9">No data yet — disposal receipts will appear here as they are processed.</td></tr>';
-    document.getElementById('disp-count').textContent = '0';
-    document.getElementById('disp-mant').textContent = '0';
-    document.getElementById('disp-tree').textContent = '0';
-    document.getElementById('disp-rastra').textContent = '0';
+    document.getElementById('disp-body').innerHTML = '<tr><td colspan="9">Error loading disposal data.</td></tr>';
   });
 }
 
@@ -1892,9 +1922,14 @@ function setDispYear(yr, el) {
 }
 
 function dispFilteredRows() {
-  if (dispYearFilter === 'all') return disposalRows;
   return disposalRows.filter(function(r) {
-    return (r['Date']||'').includes(dispYearFilter) || (r['Processed Date']||'').includes(dispYearFilter);
+    var yearOk = dispYearFilter === 'all' ||
+      (r['Date']||'').includes(dispYearFilter) ||
+      (r['Processed Date']||'').includes(dispYearFilter);
+    var grpOk  = dispGroupFilter === 'all' ||
+      r._group === dispGroupFilter ||
+      (r['Department']||'').includes(dispGroupFilter);
+    return yearOk && grpOk;
   });
 }
 
