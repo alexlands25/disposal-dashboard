@@ -1657,7 +1657,8 @@ function renderAmexTable() {
   var body = document.getElementById('amex-ledger-body');
   body.innerHTML = filtered.slice(0, 300).map(function(r, idx){
     var status = r['Status'] || r['_status'] || '';
-    var statusBadge = status === 'Reviewed' ? '<span class="amex-status-ok">✓ Reviewed</span>'
+    var dept = r['_dept'] || r['Division'] || '';
+    var statusBadge = status === 'Reviewed' ? '<span class="amex-status-ok">✓ ' + dept + '</span>'
       : status === 'Personal' ? '<span class="amex-status-pers">👤 Personal</span>'
       : status === 'Split'    ? '<span class="amex-status-ok">✂️ Split</span>'
       : '';
