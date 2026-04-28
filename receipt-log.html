@@ -628,7 +628,7 @@
       <div class="chart-wrap"><canvas id="chart-donut"></canvas></div>
     </div>
     <div class="chart-card wide">
-      <div class="chart-title">Top Stores</div>
+      <div class="chart-title">By Department</div>
       <div class="chart-wrap"><canvas id="chart-bar"></canvas></div>
     </div>
   </div>
@@ -716,6 +716,12 @@
     <div class="chart-card" style="height:220px;position:relative;cursor:pointer"><canvas id="chart-fuel-bar"></canvas></div>
   </div>
 
+  <!-- Dept spending bar -->
+  <div class="card" style="padding:16px;margin-bottom:24px">
+    <div style="font-weight:600;font-size:13px;margin-bottom:12px">💰 Fuel Cost by Department</div>
+    <div style="height:200px;position:relative;cursor:pointer"><canvas id="chart-fuel-dept-bar"></canvas></div>
+  </div>
+
   <!-- Reconciliation -->
   <div class="table-section fuel-recon-table" style="margin-bottom:24px">
     <div class="table-header"><h2>Monthly Reconciliation</h2></div>
@@ -763,6 +769,18 @@
       <div class="chip" data-year="2025" onclick="setDispYear('2025',this)">2025</div>
       <div class="chip active" data-year="2026" onclick="setDispYear('2026',this)">2026</div>
       <div class="chip" data-year="all" onclick="setDispYear('all',this)">All Time</div>
+    </div>
+  </div>
+
+  <!-- Disposal dept charts -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px" id="disp-charts-row">
+    <div class="card" style="padding:14px">
+      <div style="font-weight:600;font-size:13px;margin-bottom:10px">🗑️ Yards by Group</div>
+      <div style="height:200px;position:relative"><canvas id="chart-disp-pie"></canvas></div>
+    </div>
+    <div class="card" style="padding:14px">
+      <div style="font-weight:600;font-size:13px;margin-bottom:10px">📊 Loads by Group</div>
+      <div style="height:200px;position:relative"><canvas id="chart-disp-bar"></canvas></div>
     </div>
   </div>
 
@@ -1814,6 +1832,7 @@ function filterDisposal(val) {
 
 function renderDisposalPage() {
   renderDisposalAnalytics();
+  setTimeout(function(){ renderDisposalCharts(); }, 100);
 }
 
 function setDispYear(yr, el) {
@@ -1994,6 +2013,47 @@ function renderDisposalAnalytics() {
   renderDisposalTable();
 }
 
+function renderDisposalCharts() {
+  var byGroup = {};
+  var byGroupLoads = {};
+  disposalFiltered.forEach(function(r){
+    var g = r['Group'] || r['Source'] || r['Department'] || 'Unknown';
+    var y = parseFloat(r['Yards'] || r['Yardas'] || 0);
+    byGroup[g] = (byGroup[g]||0) + y;
+    byGroupLoads[g] = (byGroupLoads[g]||0) + 1;
+  });
+
+  var DISP_COLORS = { 'Mantenimiento':'#22c55e', 'Tree Trimming':'#3b82f6', 'Basura Rastra':'#f97316' };
+
+  // Pie chart
+  var ctx1 = document.getElementById('chart-disp-pie');
+  if (!ctx1) return;
+  if (window.chartDispPie) window.chartDispPie.destroy();
+  var labels1 = Object.keys(byGroup);
+  window.chartDispPie = new Chart(ctx1.getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels: labels1.map(function(g){ return g + ' — ' + (byGroup[g]||0).toFixed(0) + ' yds'; }),
+      datasets: [{ data: labels1.map(function(g){ return byGroup[g]||0; }), backgroundColor: labels1.map(function(g){ return DISP_COLORS[g]||'#64748b'; }), borderColor:'#273449', borderWidth:2 }]
+    },
+    options: { responsive:true, maintainAspectRatio:false, cutout:'55%', plugins:{ legend:{display:true, position:'bottom', labels:{color:'#94a3b8',font:{family:'DM Sans',size:11},boxWidth:12,padding:8}}, tooltip:{callbacks:{label:function(ctx){return ' '+(ctx.parsed).toFixed(0)+' yards';}}} } }
+  });
+
+  // Bar chart
+  var ctx2 = document.getElementById('chart-disp-bar');
+  if (!ctx2) return;
+  if (window.chartDispBar) window.chartDispBar.destroy();
+  var labels2 = Object.keys(byGroupLoads);
+  window.chartDispBar = new Chart(ctx2.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: labels2,
+      datasets: [{ label:'Loads', data: labels2.map(function(g){ return byGroupLoads[g]||0; }), backgroundColor: labels2.map(function(g){ return DISP_COLORS[g]||'#64748b'; }), borderRadius:6 }]
+    },
+    options: { responsive:true, maintainAspectRatio:false, indexAxis:'y', scales:{ x:{ticks:{color:'#94a3b8',font:{family:'DM Sans'}},grid:{color:'rgba(255,255,255,.05)'}}, y:{ticks:{color:'#94a3b8',font:{family:'DM Sans'}},grid:{color:'rgba(255,255,255,.05)'}} }, plugins:{legend:{display:false}, tooltip:{callbacks:{label:function(ctx){return ' '+ctx.parsed.x+' loads';}}}} }
+  });
+}
+
 function renderDisposalTable() {
   var html = disposalFiltered.map(function(r){
     var photo = r['Photo Link'] ? '<a href="'+esc(r['Photo Link'])+'" target="_blank">📷</a>' : '—';
@@ -2163,6 +2223,7 @@ function renderFuelPage() {
   setTimeout(function(){
     renderFuelBarChart(conRows, invRows);
     renderFuelDeptChart(conRows);
+    renderFuelDeptBarChart(conRows);
   }, 80);
 }
 
@@ -2249,21 +2310,68 @@ function renderFuelBarChart(conRows, invRows) {
 }
 
 function renderFuelDeptChart(conRows) {
-  var byDept={};
-  (conRows||fuelConsumptionRows).forEach(function(r){
-    var d = r['Department']||'Unknown';
-    byDept[d] = (byDept[d]||0) + (parseFloat(String(r['Gallons']).replace(/,/g,''))||0);
+  var byDept = {};
+  conRows.forEach(function(r){
+    var d = r['Dept'] || r['Department'] || r['Group'] || 'Unknown';
+    var g = parseFloat(r['Gallons'] || r['Gal'] || 0);
+    byDept[d] = (byDept[d]||0) + g;
   });
-  var depts = Object.keys(byDept).sort(function(a,b){return byDept[b]-byDept[a];}).slice(0,8);
-  var COLORS=['#22c55e','#3b82f6','#f97316','#a855f7','#06b6d4','#84cc16','#f59e0b','#ef4444'];
+  var sorted = Object.keys(byDept).sort(function(a,b){return byDept[b]-byDept[a];});
   var ctx = document.getElementById('chart-fuel-dept').getContext('2d');
-  if (chartFuelDept) chartFuelDept.destroy();
-  chartFuelDept = new Chart(ctx, {
+  if (window.chartFuelDept) window.chartFuelDept.destroy();
+  window.chartFuelDept = new Chart(ctx, {
     type: 'doughnut',
-    data: { labels:depts, datasets:[{ data:depts.map(function(d){return byDept[d];}), backgroundColor:COLORS, borderColor:'#273449', borderWidth:2 }] },
-    options: { responsive:true, maintainAspectRatio:false, cutout:'60%', plugins: CHART_DEFAULTS.plugins }
+    data: {
+      labels: sorted.map(function(d){ return d + ' — ' + (byDept[d]||0).toFixed(0) + ' gal'; }),
+      datasets: [{
+        data: sorted.map(function(d){ return byDept[d]; }),
+        backgroundColor: sorted.map(function(d){ return DEPT_COLORS[d] || '#64748b'; }),
+        borderColor: '#273449', borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '55%',
+      plugins: {
+        legend: { display: true, position: 'right', labels: { color:'#94a3b8', font:{family:'DM Sans',size:10}, boxWidth:10, padding:6 } },
+        tooltip: { callbacks: { label: function(ctx){ return ' '+(ctx.parsed).toFixed(1)+' gal'; } } }
+      }
+    }
   });
-  registerChart('chart-fuel-dept', 'Consumption by Department', chartFuelDept.config.type, chartFuelDept.config.data, chartFuelDept.config.options);
+  registerChart('chart-fuel-dept', 'Consumption by Department', window.chartFuelDept.config.type, window.chartFuelDept.config.data, window.chartFuelDept.config.options);
+}
+
+function renderFuelDeptBarChart(conRows) {
+  var byDept = {};
+  conRows.forEach(function(r){
+    var d = r['Dept'] || r['Department'] || r['Group'] || 'Unknown';
+    var g = parseFloat(r['Gallons'] || r['Gal'] || 0);
+    byDept[d] = (byDept[d]||0) + g;
+  });
+  var sorted = Object.keys(byDept).sort(function(a,b){return byDept[b]-byDept[a];});
+  var canvas = document.getElementById('chart-fuel-dept-bar');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  if (window.chartFuelDeptBar) window.chartFuelDeptBar.destroy();
+  window.chartFuelDeptBar = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: sorted,
+      datasets: [{
+        label: 'Gallons',
+        data: sorted.map(function(d){ return byDept[d]; }),
+        backgroundColor: sorted.map(function(d){ return DEPT_COLORS[d] || '#64748b'; }),
+        borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+      scales: {
+        x: { ticks: { color:'#94a3b8', font:{family:'DM Sans'}, callback:function(v){return v.toLocaleString()+' gal';} }, grid:{color:'rgba(255,255,255,.05)'} },
+        y: { ticks: { color:'#94a3b8', font:{family:'DM Sans'} }, grid:{color:'rgba(255,255,255,.05)'} }
+      },
+      plugins: { legend:{display:false}, tooltip:{callbacks:{label:function(ctx){return ' '+(ctx.parsed.x).toFixed(1)+' gal';}}} }
+    }
+  });
 }
 
 // ─── Data Loading — reads directly from public Google Sheet ──────────────────
@@ -2538,6 +2646,7 @@ function renderDonutChart() {
     var d = r['Department'] || 'Unknown';
     byDept[d] = (byDept[d] || 0) + r._amount;
   });
+  var total = Object.values(byDept).reduce(function(a,b){return a+b;},0);
   var sorted = Object.keys(byDept).sort(function(a,b){ return byDept[b]-byDept[a]; }).slice(0,10);
 
   var ctx = document.getElementById('chart-donut').getContext('2d');
@@ -2545,7 +2654,7 @@ function renderDonutChart() {
   chartDonut = new Chart(ctx, {
     type: 'doughnut',
     data: {
-      labels: sorted,
+      labels: sorted.map(function(d){ return d + ' — $' + fmt(byDept[d]); }),
       datasets: [{
         data: sorted.map(function(d){ return byDept[d]; }),
         backgroundColor: sorted.map(function(d){ return DEPT_COLORS[d] || '#64748b'; }),
@@ -2556,28 +2665,39 @@ function renderDonutChart() {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      cutout: '60%',
-      plugins: Object.assign({}, CHART_DEFAULTS.plugins, {
+      cutout: '55%',
+      plugins: {
+        legend: {
+          display: true,
+          position: 'right',
+          labels: {
+            color: '#94a3b8',
+            font: { family: 'DM Sans', size: 11 },
+            boxWidth: 12,
+            padding: 8
+          }
+        },
         tooltip: {
           callbacks: {
             label: function(ctx) {
-              return ' $' + fmt(ctx.parsed);
+              var pct = total > 0 ? ((ctx.parsed / total)*100).toFixed(1) : 0;
+              return ' $' + fmt(ctx.parsed) + ' (' + pct + '%)';
             }
           }
         }
-      })
+      }
     }
   });
   registerChart('chart-donut', 'By Department', chartDonut.config.type, chartDonut.config.data, chartDonut.config.options);
 }
 
 function renderBarChart() {
-  var byStore = {};
+  var byDept = {};
   filteredRows.forEach(function(r) {
-    var s = r['Store'] || 'Unknown';
-    byStore[s] = (byStore[s] || 0) + r._amount;
+    var d = r['Department'] || 'Unknown';
+    byDept[d] = (byDept[d] || 0) + r._amount;
   });
-  var sorted = Object.keys(byStore).sort(function(a,b){ return byStore[b]-byStore[a]; }).slice(0,12);
+  var sorted = Object.keys(byDept).sort(function(a,b){ return byDept[b]-byDept[a]; });
 
   var ctx = document.getElementById('chart-bar').getContext('2d');
   if (chartBar) chartBar.destroy();
@@ -2587,8 +2707,8 @@ function renderBarChart() {
       labels: sorted,
       datasets: [{
         label: 'Total Spent ($)',
-        data: sorted.map(function(s){ return byStore[s]; }),
-        backgroundColor: '#3b82f6',
+        data: sorted.map(function(d){ return byDept[d]; }),
+        backgroundColor: sorted.map(function(d){ return DEPT_COLORS[d] || '#64748b'; }),
         borderRadius: 6
       }]
     },
@@ -2600,10 +2720,16 @@ function renderBarChart() {
         x: { ticks: { color:'#94a3b8', font:{family:'DM Sans'}, callback: function(v){ return '$'+v.toLocaleString(); }}, grid:{color:'rgba(255,255,255,.05)'} },
         y: { ticks: { color:'#94a3b8', font:{family:'DM Sans'} }, grid:{color:'rgba(255,255,255,.05)'} }
       },
-      plugins: CHART_DEFAULTS.plugins
+      plugins: Object.assign({}, CHART_DEFAULTS.plugins, {
+        tooltip: {
+          callbacks: {
+            label: function(ctx){ return ' $' + fmt(ctx.parsed.x); }
+          }
+        }
+      })
     }
   });
-  registerChart('chart-bar', 'Top Stores', chartBar.config.type, chartBar.config.data, chartBar.config.options);
+  registerChart('chart-bar', 'By Department', chartBar.config.type, chartBar.config.data, chartBar.config.options);
 }
 
 // ─── Table ─────────────────────────────────────────────────────────────────────
