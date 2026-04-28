@@ -529,7 +529,7 @@
       <div class="logo">🧾</div>
       <div class="header-title">
         <h1>Epic Receipt Log</h1>
-        <p>Operational Expense Tracking — Epic Landscaping &nbsp;<span style="background:rgba(34,197,94,.15);color:#22c55e;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.04em">v2.7.0</span></p>
+        <p>Operational Expense Tracking — Epic Landscaping &nbsp;<span style="background:rgba(34,197,94,.15);color:#22c55e;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.04em">v2.8.0</span></p>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:10px">
@@ -1858,7 +1858,6 @@ function showPage(page, el) {
 }
 
 var dispGroupFilter = 'all';
-var DISPOSAL_API = 'https://script.google.com/macros/s/AKfycbxlQ9_5ww_Dq-675HCvORrXvbOYmztDs8pO8ZMm0FrlcMsTjbzLHnVY22a1oBYRb8kxYA/exec';
 
 function setDispGroup(grp, el) {
   dispGroupFilter = grp;
@@ -1869,30 +1868,21 @@ function setDispGroup(grp, el) {
 }
 
 function loadDisposalData() {
-  fetch(DISPOSAL_API, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify({ action: 'getDisposalAll' })
-  }).then(function(r){ return r.json(); }).then(function(data){
-    if (!data.success) throw new Error(data.error);
-    disposalRows = (data.rows || []).map(function(r) {
-      // Normalize date field (Date objects come as strings)
-      var d = r['Date'];
-      if (d && typeof d === 'string' && d.match(/^\d{4}-\d{2}-\d{2}/)) {
-        var parts = d.substring(0,10).split('-');
-        r['Date'] = parts[1]+'/'+parts[2]+'/'+parts[0];
-      }
-      return r;
-    });
-    // Sort by date desc
-    disposalRows.sort(function(a,b){
-      var da = new Date(a['Date']||0), db = new Date(b['Date']||0);
-      return isNaN(db-da) ? 0 : db - da;
-    });
+  var url = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:json&sheet=' + encodeURIComponent('Disposal');
+  fetch(url).then(function(r){ return r.text(); }).then(function(text){
+    var json = text.replace(/^\/\*[^*]*\*\/\s*/,'').replace(/^[^(]*\(/,'').replace(/\);?\s*$/,'');
+    var gviz = JSON.parse(json);
+    var cols = gviz.table.cols.map(function(c){ return c.label; });
+    disposalRows = (gviz.table.rows||[]).map(function(row){
+      var obj={};
+      row.c.forEach(function(cell,i){ obj[cols[i]] = cell ? (cell.f||cell.v||'') : ''; });
+      return obj;
+    }).filter(function(r){ return r['Receipt #'] || r['Date']; });
     disposalFiltered = disposalRows.slice();
     renderDisposalPage();
   }).catch(function(e){
-    document.getElementById('disp-body').innerHTML = '<tr><td colspan="9">Error loading disposal data: '+e+'</td></tr>';
+    document.getElementById('disp-body').innerHTML = '<tr><td colspan="9">Error loading data.</td></tr>';
+    ['disp-count','disp-mant','disp-tree','disp-rastra'].forEach(function(id){ document.getElementById(id).textContent='0'; });
   });
 }
 
@@ -1921,9 +1911,8 @@ function dispFilteredRows() {
     var yearOk = dispYearFilter === 'all' ||
       (r['Date']||'').includes(dispYearFilter) ||
       (r['Processed Date']||'').includes(dispYearFilter);
-    var grpOk  = dispGroupFilter === 'all' ||
-      r._group === dispGroupFilter ||
-      (r['Department']||'').includes(dispGroupFilter);
+    var grp = r['Group'] || r['Department'] || '';
+    var grpOk = dispGroupFilter === 'all' || grp === dispGroupFilter;
     return yearOk && grpOk;
   });
 }
@@ -1993,10 +1982,10 @@ function renderDisposalAnalytics() {
   // Per-group stats
   var mantLoads=0,mantYds=0,treeLoads=0,treeYds=0,rastraLoads=0,rastraYds=0;
   rows.forEach(function(r){
-    var d=r['Department']||''; var y=parseFloat(r['Yards'])||0;
-    if(d.includes('Mantenimiento')){mantLoads++;mantYds+=y;}
-    else if(d.includes('Rastra')||d.includes('rastra')){rastraLoads++;rastraYds+=y;}
-    else if(d.includes('Tree')){treeLoads++;treeYds+=y;}
+    var g=(r['Group']||r['Department']||''); var y=parseFloat(r['Yards'])||0;
+    if(g==='Mantenimiento'){mantLoads++;mantYds+=y;}
+    else if(g==='Basura Rastra'){rastraLoads++;rastraYds+=y;}
+    else if(g==='Tree Trimming'){treeLoads++;treeYds+=y;}
   });
 
   document.getElementById('disp-yards').textContent = fmt(Math.round(totalYards));
@@ -2020,10 +2009,10 @@ function renderDisposalAnalytics() {
     // Normalize MM/DD/YYYY -> YYYY-MM
     if (m.indexOf('/')>-1) { var p=d.split('/'); if(p.length>=3) m=p[2]+'-'+p[0].padStart(2,'0'); }
     if (!months[m]) months[m] = {mant:0, tree:0, rastra:0};
-    var dept = r['Department']||'';
+    var grp = r['Group'] || r['Department'] || '';
     var yds = parseFloat(r['Yards'])||0;
-    if (dept.includes('Mantenimiento')) months[m].mant += yds;
-    else if (dept.includes('Rastra') || dept.includes('rastra')) months[m].rastra += yds;
+    if (grp === 'Mantenimiento') months[m].mant += yds;
+    else if (grp === 'Basura Rastra') months[m].rastra += yds;
     else months[m].tree += yds;
   });
   var mKeys = Object.keys(months).sort().slice(-12);
