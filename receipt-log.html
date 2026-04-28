@@ -867,7 +867,8 @@ var amexCurrentSub = 'overview';
 function loadAmexData() {
   var url = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:json&sheet=' + encodeURIComponent('AMEX');
   fetch(url).then(function(r){ return r.text(); }).then(function(text) {
-    var json = JSON.parse(text.replace(/^[^{]+/, '').replace(/;?\s*$/, ''));
+    var cleaned = text.replace(/^\/\*[^*]*\*\/\s*/,'').replace(/^[^(]*\(/,'').replace(/\);?\s*$/,'');
+    var json = JSON.parse(cleaned);
     // Fixed column indices (order matches AMEX tab headers)
     // 0:Date 1:Description 2:Merchant 3:CardMember 4:Last4 5:Type 6:Division 7:Amount 8:Category 9:TX 10:Flags 11:Status 12:Receipt 13:Notes
     amexRows = [];
