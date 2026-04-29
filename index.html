@@ -246,7 +246,7 @@
       padding: 20px;
     }
     .card-label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 10px; }
-    .card-value { font-size: 28px; font-weight: 700; line-height: 1; }
+    .card-value { font-size: 28px; font-weight: 700; line-height: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; display: block; }
     .card-sub   { font-size: 12px; color: var(--muted); margin-top: 6px; }
     .card-value.green  { color: var(--green); }
     .card-value.blue   { color: var(--blue); }
@@ -529,7 +529,7 @@
       <div class="logo">🧾</div>
       <div class="header-title">
         <h1>Epic Receipt Log</h1>
-        <p>Operational Expense Tracking — Epic Landscaping &nbsp;<span style="background:rgba(34,197,94,.15);color:#22c55e;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.04em">v2.3.0</span></p>
+        <p>Operational Expense Tracking — Epic Landscaping &nbsp;<span style="background:rgba(34,197,94,.15);color:#22c55e;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.04em">v3.1.6</span></p>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:10px">
@@ -628,7 +628,7 @@
       <div class="chart-wrap"><canvas id="chart-donut"></canvas></div>
     </div>
     <div class="chart-card wide">
-      <div class="chart-title">Top Stores</div>
+      <div class="chart-title">By Department</div>
       <div class="chart-wrap"><canvas id="chart-bar"></canvas></div>
     </div>
   </div>
@@ -716,6 +716,12 @@
     <div class="chart-card" style="height:220px;position:relative;cursor:pointer"><canvas id="chart-fuel-bar"></canvas></div>
   </div>
 
+  <!-- Dept spending bar -->
+  <div class="card" style="padding:16px;margin-bottom:24px">
+    <div style="font-weight:600;font-size:13px;margin-bottom:12px">💰 Fuel Cost by Department</div>
+    <div style="height:200px;position:relative;cursor:pointer"><canvas id="chart-fuel-dept-bar"></canvas></div>
+  </div>
+
   <!-- Reconciliation -->
   <div class="table-section fuel-recon-table" style="margin-bottom:24px">
     <div class="table-header"><h2>Monthly Reconciliation</h2></div>
@@ -756,23 +762,56 @@
 <!-- ───────────────── DISPOSAL PAGE ───────────────── -->
 <div id="disposal-page">
 
-  <!-- Year Filter -->
+  <!-- Date Range Filter -->
+  <div class="filter-row" style="margin-bottom:8px;flex-wrap:wrap;gap:8px">
+    <div class="filter-group" id="disp-period-chips">
+      <div class="chip" onclick="setDispPeriod('today',this)">Today</div>
+      <div class="chip" onclick="setDispPeriod('7d',this)">Last 7d</div>
+      <div class="chip" onclick="setDispPeriod('30d',this)">Last 30d</div>
+      <div class="chip" onclick="setDispPeriod('month',this)">This Month</div>
+      <div class="chip active" onclick="setDispPeriod('year',this)">This Year</div>
+      <div class="chip" onclick="setDispPeriod('all',this)">All Time</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;margin-left:auto">
+      <input type="date" id="disp-date-from" style="background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:4px 8px;font-size:12px" onchange="setDispCustomRange()" />
+      <span style="color:var(--muted);font-size:12px">→</span>
+      <input type="date" id="disp-date-to" style="background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:4px 8px;font-size:12px" onchange="setDispCustomRange()" />
+    </div>
+  </div>
   <div class="filter-row" style="margin-bottom:20px">
-    <div class="filter-group" id="disp-year-chips">
-      <div class="chip" data-year="2024" onclick="setDispYear('2024',this)">2024</div>
-      <div class="chip" data-year="2025" onclick="setDispYear('2025',this)">2025</div>
-      <div class="chip active" data-year="2026" onclick="setDispYear('2026',this)">2026</div>
-      <div class="chip" data-year="all" onclick="setDispYear('all',this)">All Time</div>
+    <div class="filter-group" id="disp-group-chips">
+      <div class="chip active" data-group="all" onclick="setDispGroup('all',this)">🗑️ Todos</div>
+      <div class="chip" data-group="Mantenimiento" onclick="setDispGroup('Mantenimiento',this)" style="border-color:#3b82f6">🟢 Mantenimiento</div>
+      <div class="chip" data-group="Tree Trimming" onclick="setDispGroup('Tree Trimming',this)" style="border-color:#22c55e">🌳 Tree Trimming</div>
+      <div class="chip" data-group="Basura Rastra" onclick="setDispGroup('Basura Rastra',this)" style="border-color:#f97316">🚛 Basura Rastra</div>
+    </div>
+  </div>
+
+  <!-- Disposal dept charts -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px" id="disp-charts-row">
+    <div class="card" style="padding:14px">
+      <div style="font-weight:600;font-size:13px;margin-bottom:10px">🏠 Epic HQ Dumps — by Group</div>
+      <div style="height:200px;position:relative"><canvas id="chart-disp-hq"></canvas></div>
+    </div>
+    <div class="card" style="padding:14px">
+      <div style="font-weight:600;font-size:13px;margin-bottom:10px">📊 Loads by Group</div>
+      <div style="height:200px;position:relative"><canvas id="chart-disp-bar"></canvas></div>
     </div>
   </div>
 
   <!-- Summary Stats -->
   <div class="fuel-cards" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin-bottom:24px">
-    <div class="card"><div class="card-label">Total Yards</div><div class="card-value green" id="disp-yards">—</div><div class="card-sub">all loads</div></div>
-    <div class="card"><div class="card-label">Total Loads</div><div class="card-value blue" id="disp-count">—</div><div class="card-sub">receipts</div></div>
+    <div class="card"><div class="card-label">Total Yards</div><div class="card-value green" id="disp-yards">—</div><div class="card-sub">Organically loads</div></div>
+    <div class="card"><div class="card-label">Total Loads</div><div class="card-value blue" id="disp-count">—</div><div class="card-sub">Organically receipts</div></div>
     <div class="card"><div class="card-label">Avg Yards/Load</div><div class="card-value orange" id="disp-avg-yards">—</div><div class="card-sub">average</div></div>
-    <div class="card"><div class="card-label">Paid to Organically</div><div class="card-value purple" id="disp-org-total">—</div><div class="card-sub">los tomates</div></div>
-    <div class="card"><div class="card-label">Cost / Yard</div><div class="card-value" style="color:#f43f5e" id="disp-cost-yard">—</div><div class="card-sub">avg per yard</div></div>
+    <div class="card"><div class="card-label">🏠 HQ Total Yards</div><div class="card-value" style="color:#fbbf24;font-size:22px" id="disp-hq-yards">—</div><div class="card-sub" id="disp-hq-loads-sub">0 loads</div></div>
+    <div class="card"><div class="card-label" style="color:#a855f7;font-size:11px">💸 Total Invoiced</div><div class="card-value" style="color:#a855f7;font-size:20px" id="disp-org-invoiced">—</div><div class="card-sub">all Organically invoices</div></div>
+    <div class="card"><div class="card-label" style="color:#22c55e">✅ Paid</div><div class="card-value" style="color:#22c55e;font-size:20px" id="disp-org-paid">—</div><div class="card-sub" id="disp-org-paid-sub">0 invoices</div></div>
+    <div class="card"><div class="card-label" style="color:#ef4444">⚠️ Owed</div><div class="card-value" style="color:#ef4444;font-size:20px" id="disp-org-owed">—</div><div class="card-sub" id="disp-org-owed-sub">0 invoices pending</div></div>
+    <div class="card"><div class="card-label">Cost / Yard</div><div class="card-value" style="color:#f43f5e" id="disp-cost-yard">—</div><div class="card-sub">based on total invoiced</div></div>
+    <div class="card"><div class="card-label" style="color:#3b82f6">🟢 Mantenimiento</div><div class="card-value" style="color:#3b82f6" id="disp-mant">—</div><div class="card-sub" id="disp-mant-yds">0 yds</div></div>
+    <div class="card"><div class="card-label" style="color:#22c55e">🌳 Tree Trimming</div><div class="card-value" style="color:#22c55e" id="disp-tree">—</div><div class="card-sub" id="disp-tree-yds">0 yds</div></div>
+    <div class="card"><div class="card-label" style="color:#f97316">🚛 Basura Rastra</div><div class="card-value" style="color:#f97316" id="disp-rastra">—</div><div class="card-sub" id="disp-rastra-yds">0 yds</div></div>
   </div>
 
   <!-- Charts 2x2 -->
@@ -790,7 +829,7 @@
       <div class="chart-wrap"><canvas id="chart-disp-dept"></canvas></div>
     </div>
     <div class="chart-card wide" style="grid-column:span 2" onclick="openChartModal('chart-disp-org-cost','Monthly Organically Cost')">
-      <div class="chart-title">💰 Monthly Cost — Organically (los tomates)</div>
+      <div class="chart-title">📊 Monthly Yards — Organically vs Epic HQ</div>
       <div class="chart-wrap"><canvas id="chart-disp-org-cost"></canvas></div>
     </div>
   </div>
@@ -798,18 +837,18 @@
   <!-- Epic HQ Section -->
   <div class="table-section" style="margin-bottom:24px">
     <div class="table-header" style="background:rgba(251,191,36,.05);border-color:#fbbf24">
-      <h2 style="color:#fbbf24">🏠 Epic HQ Disposal</h2>
-      <span style="color:var(--muted);font-size:12px">Client = "EPIC" — loads dumped at headquarters</span>
+      <h2 style="color:#fbbf24">🏠 Epic HQ Disposal — Reporte de Bote de Basura</h2>
+      <span style="color:var(--muted);font-size:12px">Internal forms (crews dumping at Epic HQ) — NOT billed to Organically</span>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;padding:16px;border-bottom:1px solid var(--border)">
       <div class="card" style="margin:0"><div class="card-label">HQ Loads</div><div class="card-value" style="color:#fbbf24" id="hq-loads">—</div></div>
       <div class="card" style="margin:0"><div class="card-label">HQ Yards</div><div class="card-value" style="color:#fbbf24" id="hq-yards">—</div></div>
-      <div class="card" style="margin:0"><div class="card-label">Est. Cost</div><div class="card-value" style="color:#fbbf24" id="hq-cost">—</div><div class="card-sub">avg $/yard × HQ yards</div></div>
+      <div class="card" style="margin:0"><div class="card-label">Est. Savings</div><div class="card-value" style="color:#22c55e" id="hq-cost">—</div><div class="card-sub">if paid Organically rates</div></div>
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Date</th><th>Receipt #</th><th>Yards</th><th>Truck</th><th>Employee</th><th>Type</th></tr></thead>
-        <tbody id="hq-body"><tr><td colspan="6"><div class="loading-msg">Loading…</div></td></tr></tbody>
+        <thead><tr><th>Date</th><th>Receipt #</th><th>Yards</th><th>Truck</th><th>Employee</th><th>Material</th><th>📷</th><th>Type</th></tr></thead>
+        <tbody id="hq-body"><tr><td colspan="8"><div class="loading-msg">Loading…</div></td></tr></tbody>
       </table>
     </div>
   </div>
@@ -817,16 +856,33 @@
   <!-- Organically Reconciliation -->
   <div class="table-section" style="margin-bottom:24px">
     <div class="table-header" style="cursor:pointer" onclick="toggleRecon()">
-      <h2>🔍 Organically Reconciliation</h2>
+      <h2>🔍 Organically — Invoices &amp; Reconciliation</h2>
       <span id="recon-toggle" style="color:var(--muted);font-size:18px">▼</span>
     </div>
     <div id="recon-body" style="display:none">
-      <div style="padding:12px 20px;color:var(--muted);font-size:12px;border-bottom:1px solid var(--border)">
-        Cruza ticket # de Organically vs nuestros recibos. 🟢 Matched = ticket encontrado. 🟠 No Match = no está en nuestros records (posible error de cobro).
+      <!-- Invoice-level summary -->
+      <div style="padding:12px 20px;border-bottom:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Invoice summary — mark paid in column M of the Organically sheet. Ticket reconciliation below.</div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <thead><tr style="color:var(--muted)">
+              <th style="padding:6px 10px;text-align:left">Invoice #</th>
+              <th style="padding:6px 10px;text-align:left">Invoice Date</th>
+              <th style="padding:6px 10px;text-align:left">Period</th>
+              <th style="padding:6px 10px;text-align:right">Total</th>
+              <th style="padding:6px 10px;text-align:center">Status</th>
+            </tr></thead>
+            <tbody id="invoice-table-body"><tr><td colspan="5" style="padding:16px;text-align:center;color:var(--muted)">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <!-- Ticket-level reconciliation -->
+      <div style="padding:8px 20px;color:var(--muted);font-size:11px;border-bottom:1px solid var(--border)">
+        📌 Ticket-by-ticket match: each Organically line vs your receipts
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Invoice #</th><th>Date</th><th>Ticket #</th><th>Truck</th><th>Activity</th><th>Amount</th><th>Status</th></tr></thead>
+          <thead><tr><th>Invoice #</th><th>Date</th><th>Ticket #</th><th>Truck</th><th>Activity</th><th>Amount</th><th>Match</th></tr></thead>
           <tbody id="recon-table-body"><tr><td colspan="7"><div class="loading-msg"><div class="loading-spin"></div><br/>Loading Organically data…</div></td></tr></tbody>
         </table>
       </div>
@@ -843,7 +899,7 @@
     <div class="table-wrap">
       <table>
         <thead><tr>
-          <th>Date</th><th>Dept</th><th>Receipt #</th><th>Client</th><th>Yards</th><th>Truck</th><th>Employee</th><th>Amount</th><th>Photo</th>
+          <th>Date</th><th>Dept</th><th>Receipt #</th><th>Client</th><th>Yards</th><th>Truck</th><th>Employee</th><th>Amount</th><th>Photo</th><th>Type</th>
         </tr></thead>
         <tbody id="disp-body"><tr><td colspan="9"><div class="loading-msg"><div class="loading-spin"></div><br/>Loading…</div></td></tr></tbody>
       </table>
@@ -942,13 +998,26 @@
           <input id="amex-bulk-merchant" type="text" placeholder="Merchant keyword (e.g. Thumbtack)" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:12px;flex:1;min-width:140px" />
           <select id="amex-bulk-dept" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:12px">
             <option value="">-- Assign Dept --</option>
-            <option>Marketing</option>
-            <option>HQ / Office</option>
-            <option>AI & Technology</option>
             <option>Lawn Maintenance</option>
             <option>Irrigation</option>
+            <option>Tree Trimming</option>
+            <option>Landscaping</option>
+            <option>Pest Control</option>
+            <option>Construction Team</option>
+            <option>Holiday Lights</option>
+            <option>Lights</option>
+            <option>Mechanic</option>
+            <option>Mecánica</option>
+            <option>Managers</option>
+            <option>Vehicles</option>
             <option>Fleet</option>
+            <option>Equipo Edwin</option>
+            <option>Grupo Anibal</option>
+            <option>Grupo Ronald</option>
             <option>Operations</option>
+            <option>HQ / Office</option>
+            <option>AI & Technology</option>
+            <option>Marketing</option>
             <option>Shared</option>
           </select>
           <select id="amex-bulk-type" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:12px">
@@ -1026,6 +1095,25 @@
     </div>
     <div class="table-footer" id="corr-footer">0 corrections</div>
   </div>
+  <!-- Change Log — discreet audit trail from Google Sheet -->
+  <div class="table-section" style="margin-top:24px">
+    <div class="table-header" style="cursor:pointer;background:rgba(148,163,184,.04);border-color:rgba(148,163,184,.15)" onclick="toggleChangeLog()">
+      <h2 style="color:var(--muted);font-size:14px;font-weight:600">🔍 Change Log <span style="font-size:11px;font-weight:400;margin-left:8px">(system + manual edits)</span></h2>
+      <span id="cl-toggle" style="color:var(--muted);font-size:14px">▼</span>
+    </div>
+    <div id="cl-body" style="display:none">
+      <div style="padding:10px 20px;color:var(--muted);font-size:11px;border-bottom:1px solid var(--border)">
+        Wallee logs every automated change here. Manual edits by humans appear via Google's native version history.
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Timestamp</th><th>User</th><th>Sheet</th><th>Row</th><th>Col</th><th>Old Value</th><th>New Value</th><th>Note</th></tr></thead>
+          <tbody id="cl-table-body"><tr><td colspan="8"><div class="loading-msg"><div class="loading-spin"></div><br/>Loading…</div></td></tr></tbody>
+        </table>
+      </div>
+      <div class="table-footer" id="cl-footer">—</div>
+    </div>
+  </div>
 </div><!-- /corrections-page -->
 
 
@@ -1082,17 +1170,28 @@ var sortDir = 'desc';
 
 // Dept → color
 var DEPT_COLORS = {
-  'Lawn Maintenance': '#22c55e',
-  'Equipo Edwin':     '#3b82f6',
-  'Irrigation':       '#06b6d4',
-  'Grupo Ronald':     '#f97316',
-  'Tree Trimming':    '#84cc16',
-  'Landscaping':      '#10b981',
-  'Grupo Anibal':     '#f59e0b',
-  'Mecánica':         '#ef4444',
-  'Pest Control':     '#a855f7',
-  'Holiday Lights':   '#ec4899',
-  'Unknown':          '#64748b'
+  'Lawn Maintenance':   '#22c55e',
+  'Equipo Edwin':       '#3b82f6',
+  'Irrigation':         '#06b6d4',
+  'Grupo Ronald':       '#f97316',
+  'Tree Trimming':      '#84cc16',
+  'Landscaping':        '#10b981',
+  'Grupo Anibal':       '#f59e0b',
+  'Mecánica':           '#ef4444',
+  'Mechanic':           '#ef4444',
+  'Pest Control':       '#a855f7',
+  'Holiday Lights':     '#ec4899',
+  'Lights':             '#fbbf24',
+  'Construction Team':  '#8b5cf6',
+  'Managers':           '#0ea5e9',
+  'Vehicles':           '#6366f1',
+  'HQ / Office':        '#64748b',
+  'AI & Technology':    '#38bdf8',
+  'Marketing':          '#f43f5e',
+  'Operations':         '#94a3b8',
+  'Fleet':              '#475569',
+  'Shared':             '#334155',
+  'Unknown':            '#64748b'
 };
 
 var chartLine, chartDonut, chartBar;
@@ -1453,9 +1552,12 @@ function populateAmexFilters() {
 }
 
 // ─── AMEX Classify & Split ─────────────────────────────────────────────
-var EPIC_DEPTS = ['Lawn Maintenance','Irrigation','Tree Trimming','Pest Control',
-  'Fleet','Holiday Lights','Grupo Anibal','Operations','Lighting','Grupo Ronald',
-  'HQ / Office','AI & Technology','Marketing','Shared'];
+var EPIC_DEPTS = [
+  'Lawn Maintenance','Irrigation','Tree Trimming','Landscaping','Pest Control',
+  'Construction Team','Holiday Lights','Lights','Mechanic','Mecánica',
+  'Managers','Vehicles','Fleet','Grupo Anibal','Grupo Ronald','Equipo Edwin',
+  'Operations','HQ / Office','AI & Technology','Marketing','Shared'
+];
 
 var amexActiveRowIndex = -1; // index into current filtered array
 var amexFilteredCache = []; // last rendered filtered rows
@@ -1734,9 +1836,12 @@ var fuelReconRows = [];
 var chartFuelBar, chartFuelDept;
 
 var disposalRows = [];
+var hqRows = [];
 var disposalFiltered = [];
 var organicallyRows = [];
 var dispYearFilter = '2026';
+var dispDateFrom = null;
+var dispDateTo = null;
 var chartDispMonths = null, chartDispTruck = null, chartDispDeptNew = null, chartDispOrgCost = null;
 var chartDispDept;
 
@@ -1782,6 +1887,16 @@ function showPage(page, el) {
   }
 }
 
+var dispGroupFilter = 'all';
+
+function setDispGroup(grp, el) {
+  dispGroupFilter = grp;
+  document.querySelectorAll('#disp-group-chips .chip').forEach(function(c){ c.classList.remove('active'); });
+  el.classList.add('active');
+  renderDisposalAnalytics();
+  renderDisposalTable();
+}
+
 function loadDisposalData() {
   var url = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:json&sheet=' + encodeURIComponent('Disposal');
   fetch(url).then(function(r){ return r.text(); }).then(function(text){
@@ -1796,11 +1911,8 @@ function loadDisposalData() {
     disposalFiltered = disposalRows.slice();
     renderDisposalPage();
   }).catch(function(e){
-    document.getElementById('disp-body').innerHTML = '<tr><td colspan="9">No data yet — disposal receipts will appear here as they are processed.</td></tr>';
-    document.getElementById('disp-count').textContent = '0';
-    document.getElementById('disp-mant').textContent = '0';
-    document.getElementById('disp-tree').textContent = '0';
-    document.getElementById('disp-rastra').textContent = '0';
+    document.getElementById('disp-body').innerHTML = '<tr><td colspan="9">Error loading data.</td></tr>';
+    ['disp-count','disp-mant','disp-tree','disp-rastra'].forEach(function(id){ document.getElementById(id).textContent='0'; });
   });
 }
 
@@ -1814,19 +1926,65 @@ function filterDisposal(val) {
 
 function renderDisposalPage() {
   renderDisposalAnalytics();
+  setTimeout(function(){ renderDisposalCharts(); }, 100);
 }
 
 function setDispYear(yr, el) {
-  dispYearFilter = yr;
+  dispYearFilter = yr; dispDateFrom = null; dispDateTo = null;
   document.querySelectorAll('#disp-year-chips .chip').forEach(function(c){ c.classList.remove('active'); });
-  el.classList.add('active');
+  if(el) el.classList.add('active');
+  renderDisposalAnalytics();
+}
+function setDispPeriod(period, el) {
+  document.querySelectorAll('#disp-period-chips .chip').forEach(function(c){ c.classList.remove('active'); });
+  if(el) el.classList.add('active');
+  var now = new Date();
+  var pad = function(n){ return n<10?'0'+n:String(n); };
+  var fmt = function(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); };
+  dispDateFrom = null; dispDateTo = null; dispYearFilter = 'all';
+  if (period === 'today') {
+    dispDateFrom = dispDateTo = fmt(now);
+  } else if (period === '7d') {
+    var d7 = new Date(now); d7.setDate(now.getDate() - 6);
+    dispDateFrom = fmt(d7); dispDateTo = fmt(now);
+  } else if (period === '30d') {
+    var d30 = new Date(now); d30.setDate(now.getDate() - 29);
+    dispDateFrom = fmt(d30); dispDateTo = fmt(now);
+  } else if (period === 'month') {
+    dispDateFrom = now.getFullYear()+'-'+pad(now.getMonth()+1)+'-01';
+    dispDateTo = fmt(now);
+  } else if (period === 'year') {
+    dispDateFrom = now.getFullYear()+'-01-01'; dispDateTo = fmt(now);
+  }
+  var fi = document.getElementById('disp-date-from'), ti = document.getElementById('disp-date-to');
+  if(fi) fi.value = dispDateFrom||''; if(ti) ti.value = dispDateTo||'';
+  renderDisposalAnalytics();
+}
+function setDispCustomRange() {
+  var fi = document.getElementById('disp-date-from'), ti = document.getElementById('disp-date-to');
+  dispDateFrom = fi ? fi.value : null; dispDateTo = ti ? ti.value : null;
+  dispYearFilter = 'all';
+  document.querySelectorAll('#disp-period-chips .chip').forEach(function(c){ c.classList.remove('active'); });
   renderDisposalAnalytics();
 }
 
+function dispDateOk(r) {
+  var d = (r['Date']||r['Processed Date']||'').slice(0,10);
+  if (dispDateFrom || dispDateTo) {
+    if (dispDateFrom && d < dispDateFrom) return false;
+    if (dispDateTo && d > dispDateTo) return false;
+    return true;
+  }
+  return dispYearFilter === 'all' || d.includes(dispYearFilter);
+}
 function dispFilteredRows() {
-  if (dispYearFilter === 'all') return disposalRows;
   return disposalRows.filter(function(r) {
-    return (r['Date']||'').includes(dispYearFilter) || (r['Processed Date']||'').includes(dispYearFilter);
+    var grp = r['Group'] || r['Department'] || '';
+    var grpOk = dispGroupFilter === 'all' || grp === dispGroupFilter;
+    var override = r['TypeOverride'] || '';
+    if (override === 'receipt') return dispDateOk(r) && grpOk; // user said it's Organically
+    var notHQ = r['Type'] !== 'internal_form' && !(r['Client']||'').toUpperCase().includes('EPIC');
+    return dispDateOk(r) && grpOk && notHQ;
   });
 }
 
@@ -1845,12 +2003,51 @@ function loadOrganicallyData() {
   }).catch(function(e){ console.warn('Organically load failed', e); });
 }
 
+function renderInvoiceTable() {
+  // Build per-invoice summary
+  var invoices = {};
+  organicallyRows.forEach(function(r) {
+    var inv = r['Invoice #'];
+    if (!inv) return;
+    if (!invoices[inv]) {
+      invoices[inv] = {
+        inv: inv,
+        date: r['Invoice Date'] || r['Date'] || '',
+        start: r['Period Start'] || '',
+        end: r['Period End'] || '',
+        total: parseFloat(r['Invoice Total']) || 0,
+        status: r['Status'] || 'Unpaid',
+        payDate: r['Payment Date'] || ''
+      };
+    }
+    // status from ANY row in this invoice
+    if (r['Status'] && r['Status'] !== 'Unpaid') invoices[inv].status = r['Status'];
+    if (r['Payment Date']) invoices[inv].payDate = r['Payment Date'];
+  });
+  var invList = Object.values(invoices).sort(function(a,b){ return a.date > b.date ? 1 : -1; });
+  var html = invList.map(function(inv) {
+    var paid = inv.status === 'Paid';
+    var badge = paid
+      ? '<span style="background:rgba(34,197,94,.15);color:#22c55e;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700">✅ Paid</span>'
+      : '<span style="background:rgba(239,68,68,.12);color:#ef4444;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700">⚠️ Unpaid</span>';
+    return '<tr style="'+(paid?'opacity:.6':'')+'">'
+      + '<td style="font-size:11px;color:var(--muted)">'+esc(inv.inv)+'</td>'
+      + '<td style="font-size:12px">'+esc(inv.date)+'</td>'
+      + '<td style="font-size:11px;color:var(--muted)">'+esc(inv.start)+' – '+esc(inv.end)+'</td>'
+      + '<td style="text-align:right;font-weight:700;color:'+(paid?'#22c55e':'#ef4444')+'">'+(inv.total?'$'+inv.total.toLocaleString('en-US',{minimumFractionDigits:2}):'—')+'</td>'
+      + '<td style="text-align:center">'+badge+(inv.payDate?' <span style="font-size:10px;color:var(--muted)">'+esc(inv.payDate)+'</span>':'')+'</td>'
+      + '</tr>';
+  }).join('');
+  document.getElementById('invoice-table-body').innerHTML = html || '<tr><td colspan="5" style="padding:16px;text-align:center;color:var(--muted)">No invoices loaded.</td></tr>';
+}
+
 function toggleRecon() {
   var body = document.getElementById('recon-body');
   var tog = document.getElementById('recon-toggle');
   if (body.style.display === 'none') {
     body.style.display = 'block';
     tog.textContent = '▲';
+    renderInvoiceTable();
     renderReconTable();
   } else {
     body.style.display = 'none';
@@ -1885,18 +2082,48 @@ function renderDisposalAnalytics() {
   var orgRows = dispYearFilter === 'all' ? organicallyRows : organicallyRows.filter(function(r){
     return (r['Invoice Date']||r['Date']||'').includes(dispYearFilter);
   });
-  var orgTotal = 0;
-  orgRows.forEach(function(r){ orgTotal += parseFloat(r['Amount'])||0; });
-  var costPerYard = totalYards > 0 ? (orgTotal/totalYards).toFixed(2) : 0;
+  // Invoice-level totals (deduplicated by Invoice #)
+  var seenInv = {};
+  var orgInvoiced = 0, orgPaid = 0, orgPaidCount = 0, orgUnpaidCount = 0;
+  organicallyRows.forEach(function(r) {
+    var inv = r['Invoice #'];
+    if (!inv || seenInv[inv]) return;
+    seenInv[inv] = true;
+    var total = parseFloat(r['Invoice Total']) || 0;
+    orgInvoiced += total;
+    if ((r['Status']||'').toLowerCase() === 'paid') { orgPaid += total; orgPaidCount++; }
+    else orgUnpaidCount++;
+  });
+  var orgOwed = orgInvoiced - orgPaid;
+  var costPerYard = totalYards > 0 && orgInvoiced > 0 ? (orgInvoiced/totalYards).toFixed(2) : 0;
+  var fmtD = function(n){ return '$'+parseFloat(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); };
 
   var fmt = function(n){ return n.toLocaleString('en-US'); };
-  var fmtD = function(n){ return '$'+parseFloat(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); };
+
+  // Per-group stats
+  var mantLoads=0,mantYds=0,treeLoads=0,treeYds=0,rastraLoads=0,rastraYds=0;
+  rows.forEach(function(r){
+    var g=(r['Group']||r['Department']||''); var y=parseFloat(r['Yards'])||0;
+    if(g==='Mantenimiento'){mantLoads++;mantYds+=y;}
+    else if(g==='Basura Rastra'){rastraLoads++;rastraYds+=y;}
+    else if(g==='Tree Trimming'){treeLoads++;treeYds+=y;}
+  });
 
   document.getElementById('disp-yards').textContent = fmt(Math.round(totalYards));
   document.getElementById('disp-count').textContent = fmt(totalLoads);
   document.getElementById('disp-avg-yards').textContent = avgYards;
-  document.getElementById('disp-org-total').textContent = orgTotal > 0 ? fmtD(orgTotal) : '—';
+  document.getElementById('disp-org-invoiced').textContent = orgInvoiced > 0 ? fmtD(orgInvoiced) : '—';
+  document.getElementById('disp-org-paid').textContent = orgPaid > 0 ? fmtD(orgPaid) : '$0.00';
+  document.getElementById('disp-org-paid-sub').textContent = orgPaidCount + ' invoice' + (orgPaidCount!==1?'s':'') + ' paid';
+  document.getElementById('disp-org-owed').textContent = orgOwed > 0 ? fmtD(orgOwed) : '$0.00';
+  document.getElementById('disp-org-owed-sub').textContent = orgUnpaidCount + ' invoice' + (orgUnpaidCount!==1?'s':'') + ' pending';
   document.getElementById('disp-cost-yard').textContent = costPerYard > 0 ? '$'+costPerYard : '—';
+  document.getElementById('disp-mant').textContent = fmt(mantLoads);
+  document.getElementById('disp-mant-yds').textContent = fmt(Math.round(mantYds))+' yds';
+  document.getElementById('disp-tree').textContent = fmt(treeLoads);
+  document.getElementById('disp-tree-yds').textContent = fmt(Math.round(treeYds))+' yds';
+  document.getElementById('disp-rastra').textContent = fmt(rastraLoads);
+  document.getElementById('disp-rastra-yds').textContent = fmt(Math.round(rastraYds))+' yds';
 
   // --- Chart 1: Yards by Month (stacked bar) ---
   var months = {};
@@ -1906,10 +2133,11 @@ function renderDisposalAnalytics() {
     if (!m) return;
     // Normalize MM/DD/YYYY -> YYYY-MM
     if (m.indexOf('/')>-1) { var p=d.split('/'); if(p.length>=3) m=p[2]+'-'+p[0].padStart(2,'0'); }
-    if (!months[m]) months[m] = {mant:0, tree:0};
-    var dept = r['Department']||'';
+    if (!months[m]) months[m] = {mant:0, tree:0, rastra:0};
+    var grp = r['Group'] || r['Department'] || '';
     var yds = parseFloat(r['Yards'])||0;
-    if (dept.includes('Mantenimiento')) months[m].mant += yds;
+    if (grp === 'Mantenimiento') months[m].mant += yds;
+    else if (grp === 'Basura Rastra') months[m].rastra += yds;
     else months[m].tree += yds;
   });
   var mKeys = Object.keys(months).sort().slice(-12);
@@ -1920,7 +2148,8 @@ function renderDisposalAnalytics() {
     data:{ labels: mKeys,
       datasets:[
         { label:'Mantenimiento', data: mKeys.map(function(k){return months[k].mant;}), backgroundColor:'#3b82f6', borderRadius:4 },
-        { label:'Tree Trimming', data: mKeys.map(function(k){return months[k].tree;}), backgroundColor:'#22c55e', borderRadius:4 }
+        { label:'Tree Trimming', data: mKeys.map(function(k){return months[k].tree;}), backgroundColor:'#22c55e', borderRadius:4 },
+        { label:'Basura Rastra', data: mKeys.map(function(k){return months[k].rastra;}), backgroundColor:'#f97316', borderRadius:4 }
       ]},
     options:{ responsive:true, maintainAspectRatio:false, plugins: CHART_DEFAULTS.plugins,
       scales:{ x:{stacked:true,ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,.05)'}}, y:{stacked:true,ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,.05)'}} } }
@@ -1965,42 +2194,185 @@ function renderDisposalAnalytics() {
     if (!m) return;
     orgByMonth[m] = (orgByMonth[m]||0) + (parseFloat(r['Amount'])||0);
   });
-  var omKeys = Object.keys(orgByMonth).sort().slice(-12);
+  // Build Epic HQ monthly yards for overlay
+  var hqByMonth = {};
+  disposalRows.forEach(function(r){
+    var isHQ = r['Type']==='internal_form' || (r['Client']||'').toUpperCase().includes('EPIC');
+    if (!isHQ) return;
+    var d = r['Date']||r['Processed Date']||'';
+    var m = d.slice(0,7); if (!m) return;
+    hqByMonth[m] = (hqByMonth[m]||0) + (parseFloat(r['Yards'])||0);
+  });
+  // Build Organically yards by month (from disposal tickets, not invoices)
+  var orgYardsByMonth = {};
+  rows.forEach(function(r){
+    var d = r['Date']||r['Processed Date']||''; var m = d.slice(0,7); if(!m) return;
+    orgYardsByMonth[m] = (orgYardsByMonth[m]||0) + (parseFloat(r['Yards'])||0);
+  });
+  // Union all months, sorted
+  var allMonths = Array.from(new Set(Object.keys(orgYardsByMonth).concat(Object.keys(hqByMonth)))).sort();
   var ctx4 = document.getElementById('chart-disp-org-cost').getContext('2d');
   if (chartDispOrgCost) chartDispOrgCost.destroy();
   chartDispOrgCost = new Chart(ctx4, {
-    type:'bar',
-    data:{ labels: omKeys,
-      datasets:[{ label:'$ Organically', data: omKeys.map(function(k){return orgByMonth[k];}), backgroundColor:'#a855f7', borderRadius:4 }]},
-    options:{ responsive:true, maintainAspectRatio:false, plugins: CHART_DEFAULTS.plugins,
-      scales:{ x:{ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,.05)'}}, y:{ticks:{color:'#94a3b8',callback:function(v){return '$'+v.toLocaleString();}},grid:{color:'rgba(255,255,255,.05)'}} } }
+    type:'line',
+    data:{ labels: allMonths,
+      datasets:[
+        { label:'💪 Organically Yards (Tomates)', data: allMonths.map(function(k){return orgYardsByMonth[k]||0;}),
+          borderColor:'#a855f7', backgroundColor:'rgba(168,85,247,.15)', fill:true,
+          tension:0.4, pointRadius:4, pointHoverRadius:7, borderWidth:2.5 },
+        { label:'🏠 Epic HQ Yards', data: allMonths.map(function(k){return hqByMonth[k]||0;}),
+          borderColor:'#fbbf24', backgroundColor:'rgba(251,191,36,.1)', fill:true,
+          tension:0.4, pointRadius:4, pointHoverRadius:7, borderWidth:2.5 }
+      ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      interaction:{ mode:'index', intersect:false },
+      plugins:{ legend:{display:true, labels:{color:'#cbd5e1',font:{family:'DM Sans',size:12},boxWidth:14,padding:16}},
+        tooltip:{callbacks:{label:function(ctx){return ' '+ctx.dataset.label+': '+ctx.parsed.y.toFixed(0)+' yds';}}} },
+      scales:{
+        x:{ticks:{color:'#94a3b8',font:{family:'DM Sans',size:11}},grid:{color:'rgba(255,255,255,.04)'}},
+        y:{ticks:{color:'#94a3b8',callback:function(v){return v+' yds';}},grid:{color:'rgba(255,255,255,.04)'},beginAtZero:true}
+      } }
   });
-  registerChart('chart-disp-org-cost','Monthly Organically Cost',chartDispOrgCost.config.type,chartDispOrgCost.config.data,chartDispOrgCost.config.options);
+  registerChart('chart-disp-org-cost','Monthly Yards: Organically vs Epic HQ',chartDispOrgCost.config.type,chartDispOrgCost.config.data,chartDispOrgCost.config.options);
 
-  // --- Epic HQ ---
-  var hqRows = rows.filter(function(r){ return (r['Client']||'').toUpperCase().includes('EPIC'); });
+  // --- Epic HQ --- search ALL disposal rows (internal_form excluded from main stats)
+  hqRows = disposalRows.filter(function(r){
+    var grp = r['Group'] || r['Department'] || '';
+    var grpOk = dispGroupFilter === 'all' || grp === dispGroupFilter;
+    var override = r['TypeOverride'] || '';
+    if (override === 'receipt') return false; // user corrected to Organically
+    var isHQ = override === 'internal_form' || r['Type']==='internal_form' || (r['Client']||'').toUpperCase().includes('EPIC');
+    return isHQ && dispDateOk(r) && grpOk;
+  });
   var hqYards = 0; hqRows.forEach(function(r){ hqYards += parseFloat(r['Yards'])||0; });
   var hqCost = costPerYard > 0 ? (hqYards * parseFloat(costPerYard)) : 0;
   document.getElementById('hq-loads').textContent = hqRows.length;
   document.getElementById('hq-yards').textContent = Math.round(hqYards);
+  var hqYardsEl = document.getElementById('disp-hq-yards');
+  if (hqYardsEl) hqYardsEl.textContent = Math.round(hqYards).toLocaleString();
+  var hqLoadsSub = document.getElementById('disp-hq-loads-sub');
+  if (hqLoadsSub) hqLoadsSub.textContent = hqRows.length + ' loads';
   document.getElementById('hq-cost').textContent = hqCost > 0 ? fmtD(hqCost) : '—';
-  var hqHtml = hqRows.slice(0,50).map(function(r){
-    return '<tr><td>'+esc(r['Date'])+'</td><td>'+esc(r['Receipt #'])+'</td><td>'+esc(r['Yards'])+'</td><td>'+esc(r['Truck'])+'</td><td>'+esc(r['Employee'])+'</td><td>'+esc(r['Type']||r['Group']||'—')+'</td></tr>';
+  var hqHtml = hqRows.slice(0,200).map(function(r){
+    var photo = r['Photo Link'] ? '<a href="'+esc(r['Photo Link'])+'" target="_blank" style="font-size:16px">📷</a>' : '—';
+    var mat = r['Description'] || r['Activity Type'] || r['Type'] || '—';
+    var t = r['TypeOverride'] || r['Type'] || 'internal_form';
+    var tLabel = t==='receipt' ? '📝 Organically' : '🏠 Epic HQ';
+    var tColor = t==='receipt' ? '#a855f7' : '#fbbf24';
+    var tBg   = t==='receipt' ? 'rgba(168,85,247,.15)' : 'rgba(251,191,36,.15)';
+    var rn = esc(r['Receipt #']);
+    var typeBtn = '<button data-type="'+t+'" data-receipt="'+rn+'" onclick="flipRowType(this)" '
+      + 'style="background:'+tBg+';color:'+tColor+';border:none;border-radius:4px;padding:2px 7px;font-size:10px;cursor:pointer;font-weight:600">'+tLabel+'</button>';
+    return '<tr>'
+      +'<td>'+esc(r['Date'])+'</td>'
+      +'<td style="font-size:11px;color:var(--muted)">'+rn+'</td>'
+      +'<td>'+esc(r['Yards'])+'</td>'
+      +'<td>'+esc(r['Truck'])+'</td>'
+      +'<td>'+esc(r['Employee'])+'</td>'
+      +'<td style="font-size:11px">'+esc(mat)+'</td>'
+      +'<td>'+photo+'</td>'
+      +'<td>'+typeBtn+'</td>'
+      +'</tr>';
   }).join('');
-  document.getElementById('hq-body').innerHTML = hqHtml || '<tr><td colspan="6" style="color:var(--muted);text-align:center;padding:20px">No Epic HQ receipts found</td></tr>';
+  document.getElementById('hq-body').innerHTML = hqHtml || '<tr><td colspan="8" style="color:var(--muted);text-align:center;padding:20px">No Epic HQ receipts found</td></tr>';
 
   // Update table
   disposalFiltered = rows;
   renderDisposalTable();
 }
 
+function renderDisposalCharts() {
+  var byGroup = {};
+  var byGroupLoads = {};
+  disposalFiltered.forEach(function(r){
+    var g = r['Group'] || r['Source'] || r['Department'] || 'Unknown';
+    var y = parseFloat(r['Yards'] || r['Yardas'] || 0);
+    byGroup[g] = (byGroup[g]||0) + y;
+    byGroupLoads[g] = (byGroupLoads[g]||0) + 1;
+  });
+
+  var DISP_COLORS = { 'Mantenimiento':'#22c55e', 'Tree Trimming':'#3b82f6', 'Basura Rastra':'#f97316' };
+
+  // HQ Donut chart (replaces duplicate group donut)
+  var hqByGrp = {};
+  hqRows.forEach(function(r){
+    var g = r['Group'] || r['Department'] || 'Unknown';
+    hqByGrp[g] = (hqByGrp[g]||0) + (parseFloat(r['Yards'])||0);
+  });
+  var ctxHQ = document.getElementById('chart-disp-hq');
+  if (ctxHQ) {
+    if (window.chartDispHQ) window.chartDispHQ.destroy();
+    var hqLabels = Object.keys(hqByGrp);
+    window.chartDispHQ = new Chart(ctxHQ.getContext('2d'), {
+      type: 'doughnut',
+      data: {
+        labels: hqLabels.map(function(g){ return g + ' — ' + (hqByGrp[g]||0).toFixed(0) + ' yds'; }),
+        datasets: [{ data: hqLabels.map(function(g){ return hqByGrp[g]||0; }), backgroundColor: hqLabels.map(function(g){ return DISP_COLORS[g]||'#64748b'; }), borderColor:'#1e293b', borderWidth:2 }]
+      },
+      options: { responsive:true, maintainAspectRatio:false, cutout:'55%', plugins:{ legend:{display:true, position:'bottom', labels:{color:'#94a3b8',font:{family:'DM Sans',size:11},boxWidth:12,padding:8}}, tooltip:{callbacks:{label:function(ctx){return ' '+(ctx.parsed).toFixed(0)+' yards';}}} } }
+    });
+  }
+
+  // Bar chart
+  var ctx2 = document.getElementById('chart-disp-bar');
+  if (!ctx2) return;
+  if (window.chartDispBar) window.chartDispBar.destroy();
+  var labels2 = Object.keys(byGroupLoads);
+  window.chartDispBar = new Chart(ctx2.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: labels2,
+      datasets: [{ label:'Loads', data: labels2.map(function(g){ return byGroupLoads[g]||0; }), backgroundColor: labels2.map(function(g){ return DISP_COLORS[g]||'#64748b'; }), borderRadius:6 }]
+    },
+    options: { responsive:true, maintainAspectRatio:false, indexAxis:'y', scales:{ x:{ticks:{color:'#94a3b8',font:{family:'DM Sans'}},grid:{color:'rgba(255,255,255,.05)'}}, y:{ticks:{color:'#94a3b8',font:{family:'DM Sans'}},grid:{color:'rgba(255,255,255,.05)'}} }, plugins:{legend:{display:false}, tooltip:{callbacks:{label:function(ctx){return ' '+ctx.parsed.x+' loads';}}}} }
+  });
+}
+
+var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxlQ9_5ww_Dq-675HCvORrXvbOYmztDs8pO8ZMm0FrlcMsTjbzLHnVY22a1oBYRb8kxYA/exec';
+var CONSOLIDATED_SHEET_ID = '1uvwHpRUYOVki3EG9WGbtX4Em8vM1EPw6nM0DCEOTykc';
+
+function flipRowType(btn) {
+  var receiptNum = btn.getAttribute('data-receipt');
+  var currentType = btn.getAttribute('data-type');
+  var newType = (currentType === 'internal_form') ? 'receipt' : 'internal_form';
+  var destName = (newType === 'receipt') ? 'Organically (Los Tomates)' : 'Epic HQ Disposal';
+  var srcName  = (newType === 'receipt') ? 'Epic HQ' : 'Organically';
+  if (!confirm('Move "' + receiptNum + '" from ' + srcName + ' \u2192 ' + destName + '?\n\nThis updates the sheet immediately.')) return;
+  btn.textContent = '⏳...';
+  btn.disabled = true;
+  fetch(APPS_SCRIPT_URL, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      action:'lookupAndUpdate', sheetId: CONSOLIDATED_SHEET_ID, sheetName:'Disposal',
+      lookupCol:'Receipt #', lookupVal: receiptNum, updateCol:'TypeOverride', updateVal: newType
+    })
+  }).then(function(r){ return r.json(); }).then(function(){
+    disposalRows.forEach(function(r){
+      if(String(r['Receipt #']) === String(receiptNum)) r['TypeOverride'] = newType;
+    });
+    renderDisposalAnalytics();
+  }).catch(function(e){
+    console.error('flipRowType error',e);
+    alert('❌ Could not save. Check connection and try again.');
+    btn.disabled = false;
+    btn.textContent = currentType==='internal_form' ? '🏠 Epic HQ' : '📝 Organically';
+  });
+}
+
 function renderDisposalTable() {
   var html = disposalFiltered.map(function(r){
     var photo = r['Photo Link'] ? '<a href="'+esc(r['Photo Link'])+'" target="_blank">📷</a>' : '—';
     var amt = r['Amount'] && r['Amount']!='0' ? '$'+r['Amount'] : '—';
-    return '<tr><td>'+esc(r['Date'])+'</td><td>'+esc(r['Department'])+'</td><td>'+esc(r['Receipt #'])+'</td><td>'+esc(r['Client'])+'</td><td>'+esc(r['Yards'])+'</td><td>'+esc(r['Truck'])+'</td><td>'+esc(r['Employee'])+'</td><td>'+amt+'</td><td>'+photo+'</td></tr>';
+    var t = r['TypeOverride'] || r['Type'] || 'receipt';
+    var tLabel = t==='internal_form' ? '🏠 Epic HQ' : '📝 Organically';
+    var tColor = t==='internal_form' ? '#fbbf24' : '#a855f7';
+    var tBg = t==='internal_form' ? 'rgba(251,191,36,.15)' : 'rgba(168,85,247,.15)';
+    var rn = esc(r['Receipt #']);
+    var typeBtn = '<button data-type="'+t+'" data-receipt="'+rn+'" onclick="flipRowType(this)" '
+      + 'style="background:'+tBg+';color:'+tColor+';border:none;border-radius:4px;padding:2px 7px;font-size:10px;cursor:pointer;font-weight:600">'+tLabel+'</button>';
+    return '<tr><td>'+esc(r['Date'])+'</td><td>'+esc(r['Department'])+'</td><td style="font-size:11px">'+rn+'</td><td>'+esc(r['Client'])+'</td><td>'+esc(r['Yards'])+'</td><td>'+esc(r['Truck'])+'</td><td>'+esc(r['Employee'])+'</td><td>'+amt+'</td><td>'+photo+'</td><td>'+typeBtn+'</td></tr>';
   }).join('');
-  document.getElementById('disp-body').innerHTML = html || '<tr><td colspan="9">No receipts match the filter.</td></tr>';
+  document.getElementById('disp-body').innerHTML = html || '<tr><td colspan="10">No receipts match the filter.</td></tr>';
   document.getElementById('disp-footer').textContent = disposalFiltered.length.toLocaleString() + ' receipts';
 }
 
@@ -2163,6 +2535,7 @@ function renderFuelPage() {
   setTimeout(function(){
     renderFuelBarChart(conRows, invRows);
     renderFuelDeptChart(conRows);
+    renderFuelDeptBarChart(conRows);
   }, 80);
 }
 
@@ -2249,21 +2622,68 @@ function renderFuelBarChart(conRows, invRows) {
 }
 
 function renderFuelDeptChart(conRows) {
-  var byDept={};
-  (conRows||fuelConsumptionRows).forEach(function(r){
-    var d = r['Department']||'Unknown';
-    byDept[d] = (byDept[d]||0) + (parseFloat(String(r['Gallons']).replace(/,/g,''))||0);
+  var byDept = {};
+  conRows.forEach(function(r){
+    var d = r['Dept'] || r['Department'] || r['Group'] || 'Unknown';
+    var g = parseFloat(r['Gallons'] || r['Gal'] || 0);
+    byDept[d] = (byDept[d]||0) + g;
   });
-  var depts = Object.keys(byDept).sort(function(a,b){return byDept[b]-byDept[a];}).slice(0,8);
-  var COLORS=['#22c55e','#3b82f6','#f97316','#a855f7','#06b6d4','#84cc16','#f59e0b','#ef4444'];
+  var sorted = Object.keys(byDept).sort(function(a,b){return byDept[b]-byDept[a];});
   var ctx = document.getElementById('chart-fuel-dept').getContext('2d');
-  if (chartFuelDept) chartFuelDept.destroy();
-  chartFuelDept = new Chart(ctx, {
+  if (window.chartFuelDept) window.chartFuelDept.destroy();
+  window.chartFuelDept = new Chart(ctx, {
     type: 'doughnut',
-    data: { labels:depts, datasets:[{ data:depts.map(function(d){return byDept[d];}), backgroundColor:COLORS, borderColor:'#273449', borderWidth:2 }] },
-    options: { responsive:true, maintainAspectRatio:false, cutout:'60%', plugins: CHART_DEFAULTS.plugins }
+    data: {
+      labels: sorted.map(function(d){ return d + ' — ' + (byDept[d]||0).toFixed(0) + ' gal'; }),
+      datasets: [{
+        data: sorted.map(function(d){ return byDept[d]; }),
+        backgroundColor: sorted.map(function(d){ return DEPT_COLORS[d] || '#64748b'; }),
+        borderColor: '#273449', borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '55%',
+      plugins: {
+        legend: { display: true, position: 'right', labels: { color:'#94a3b8', font:{family:'DM Sans',size:10}, boxWidth:10, padding:6 } },
+        tooltip: { callbacks: { label: function(ctx){ return ' '+(ctx.parsed).toFixed(1)+' gal'; } } }
+      }
+    }
   });
-  registerChart('chart-fuel-dept', 'Consumption by Department', chartFuelDept.config.type, chartFuelDept.config.data, chartFuelDept.config.options);
+  registerChart('chart-fuel-dept', 'Consumption by Department', window.chartFuelDept.config.type, window.chartFuelDept.config.data, window.chartFuelDept.config.options);
+}
+
+function renderFuelDeptBarChart(conRows) {
+  var byDept = {};
+  conRows.forEach(function(r){
+    var d = r['Dept'] || r['Department'] || r['Group'] || 'Unknown';
+    var g = parseFloat(r['Gallons'] || r['Gal'] || 0);
+    byDept[d] = (byDept[d]||0) + g;
+  });
+  var sorted = Object.keys(byDept).sort(function(a,b){return byDept[b]-byDept[a];});
+  var canvas = document.getElementById('chart-fuel-dept-bar');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  if (window.chartFuelDeptBar) window.chartFuelDeptBar.destroy();
+  window.chartFuelDeptBar = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: sorted,
+      datasets: [{
+        label: 'Gallons',
+        data: sorted.map(function(d){ return byDept[d]; }),
+        backgroundColor: sorted.map(function(d){ return DEPT_COLORS[d] || '#64748b'; }),
+        borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+      scales: {
+        x: { ticks: { color:'#94a3b8', font:{family:'DM Sans'}, callback:function(v){return v.toLocaleString()+' gal';} }, grid:{color:'rgba(255,255,255,.05)'} },
+        y: { ticks: { color:'#94a3b8', font:{family:'DM Sans'} }, grid:{color:'rgba(255,255,255,.05)'} }
+      },
+      plugins: { legend:{display:false}, tooltip:{callbacks:{label:function(ctx){return ' '+(ctx.parsed.x).toFixed(1)+' gal';}}} }
+    }
+  });
 }
 
 // ─── Data Loading — reads directly from public Google Sheet ──────────────────
@@ -2538,6 +2958,7 @@ function renderDonutChart() {
     var d = r['Department'] || 'Unknown';
     byDept[d] = (byDept[d] || 0) + r._amount;
   });
+  var total = Object.values(byDept).reduce(function(a,b){return a+b;},0);
   var sorted = Object.keys(byDept).sort(function(a,b){ return byDept[b]-byDept[a]; }).slice(0,10);
 
   var ctx = document.getElementById('chart-donut').getContext('2d');
@@ -2545,7 +2966,7 @@ function renderDonutChart() {
   chartDonut = new Chart(ctx, {
     type: 'doughnut',
     data: {
-      labels: sorted,
+      labels: sorted.map(function(d){ return d + ' — $' + fmt(byDept[d]); }),
       datasets: [{
         data: sorted.map(function(d){ return byDept[d]; }),
         backgroundColor: sorted.map(function(d){ return DEPT_COLORS[d] || '#64748b'; }),
@@ -2556,28 +2977,39 @@ function renderDonutChart() {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      cutout: '60%',
-      plugins: Object.assign({}, CHART_DEFAULTS.plugins, {
+      cutout: '55%',
+      plugins: {
+        legend: {
+          display: true,
+          position: 'right',
+          labels: {
+            color: '#94a3b8',
+            font: { family: 'DM Sans', size: 11 },
+            boxWidth: 12,
+            padding: 8
+          }
+        },
         tooltip: {
           callbacks: {
             label: function(ctx) {
-              return ' $' + fmt(ctx.parsed);
+              var pct = total > 0 ? ((ctx.parsed / total)*100).toFixed(1) : 0;
+              return ' $' + fmt(ctx.parsed) + ' (' + pct + '%)';
             }
           }
         }
-      })
+      }
     }
   });
   registerChart('chart-donut', 'By Department', chartDonut.config.type, chartDonut.config.data, chartDonut.config.options);
 }
 
 function renderBarChart() {
-  var byStore = {};
+  var byDept = {};
   filteredRows.forEach(function(r) {
-    var s = r['Store'] || 'Unknown';
-    byStore[s] = (byStore[s] || 0) + r._amount;
+    var d = r['Department'] || 'Unknown';
+    byDept[d] = (byDept[d] || 0) + r._amount;
   });
-  var sorted = Object.keys(byStore).sort(function(a,b){ return byStore[b]-byStore[a]; }).slice(0,12);
+  var sorted = Object.keys(byDept).sort(function(a,b){ return byDept[b]-byDept[a]; });
 
   var ctx = document.getElementById('chart-bar').getContext('2d');
   if (chartBar) chartBar.destroy();
@@ -2587,8 +3019,8 @@ function renderBarChart() {
       labels: sorted,
       datasets: [{
         label: 'Total Spent ($)',
-        data: sorted.map(function(s){ return byStore[s]; }),
-        backgroundColor: '#3b82f6',
+        data: sorted.map(function(d){ return byDept[d]; }),
+        backgroundColor: sorted.map(function(d){ return DEPT_COLORS[d] || '#64748b'; }),
         borderRadius: 6
       }]
     },
@@ -2600,10 +3032,16 @@ function renderBarChart() {
         x: { ticks: { color:'#94a3b8', font:{family:'DM Sans'}, callback: function(v){ return '$'+v.toLocaleString(); }}, grid:{color:'rgba(255,255,255,.05)'} },
         y: { ticks: { color:'#94a3b8', font:{family:'DM Sans'} }, grid:{color:'rgba(255,255,255,.05)'} }
       },
-      plugins: CHART_DEFAULTS.plugins
+      plugins: Object.assign({}, CHART_DEFAULTS.plugins, {
+        tooltip: {
+          callbacks: {
+            label: function(ctx){ return ' $' + fmt(ctx.parsed.x); }
+          }
+        }
+      })
     }
   });
-  registerChart('chart-bar', 'Top Stores', chartBar.config.type, chartBar.config.data, chartBar.config.options);
+  registerChart('chart-bar', 'By Department', chartBar.config.type, chartBar.config.data, chartBar.config.options);
 }
 
 // ─── Table ─────────────────────────────────────────────────────────────────────
@@ -2766,6 +3204,57 @@ function logCorrection(field, store, date, oldVal, newVal, sheetRow) {
       row: [ts, field, store, date, oldVal, newVal]
     })
   }).catch(function(){}) // best-effort, don't block UI
+}
+
+var clLoaded = false;
+function toggleChangeLog() {
+  var body = document.getElementById('cl-body');
+  var tog  = document.getElementById('cl-toggle');
+  if (body.style.display === 'none') {
+    body.style.display = 'block';
+    tog.textContent = '▲';
+    if (!clLoaded) { clLoaded = true; loadChangeLog(); }
+  } else {
+    body.style.display = 'none';
+    tog.textContent = '▼';
+  }
+}
+
+function loadChangeLog() {
+  var MANT_ID = '1AC31GJeSitF6xosFMuNznlkbzLt_IOPu8exybfYqjWQ';
+  var url = 'https://docs.google.com/spreadsheets/d/' + MANT_ID + '/gviz/tq?tqx=out:json&sheet=' + encodeURIComponent('Change Log');
+  fetch(url).then(function(r){ return r.text(); }).then(function(text){
+    var json = text.replace(/^\/\*[^*]*\*\/\s*/,'').replace(/^[^(]*\(/,'').replace(/\);?\s*$/,'');
+    var gviz = JSON.parse(json);
+    var cols = gviz.table.cols.map(function(c){ return c.label; });
+    var rows = (gviz.table.rows||[]).map(function(row){
+      var obj={};
+      row.c.forEach(function(cell,i){ obj[cols[i]] = cell ? (cell.f||cell.v||'') : ''; });
+      return obj;
+    }).filter(function(r){ return r['Timestamp'] || r['User']; });
+    var tbody = document.getElementById('cl-table-body');
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="8" style="color:var(--muted);text-align:center;padding:20px">No entries yet.</td></tr>';
+      document.getElementById('cl-footer').textContent = '0 entries';
+      return;
+    }
+    tbody.innerHTML = rows.slice().reverse().map(function(r){
+      var userColor = r['User']==='Wallee (System)' ? '#3b82f6' : '#f97316';
+      return '<tr>'
+        + '<td style="color:var(--muted);font-size:11px;white-space:nowrap">'+esc(r['Timestamp'])+'</td>'
+        + '<td><span style="color:'+userColor+';font-weight:600;font-size:11px">'+esc(r['User'])+'</span></td>'
+        + '<td style="font-size:11px">'+esc(r['Sheet'])+'</td>'
+        + '<td style="color:var(--muted);font-size:11px;text-align:center">'+esc(r['Row'])+'</td>'
+        + '<td style="color:var(--muted);font-size:11px;text-align:center">'+esc(r['Column'])+'</td>'
+        + '<td style="color:#ef4444;font-size:11px">'+esc(r['Old Value'])+'</td>'
+        + '<td style="color:#22c55e;font-size:11px">'+esc(r['New Value'])+'</td>'
+        + '<td style="color:var(--muted);font-size:11px">'+esc(r['Note'])+'</td>'
+        + '</tr>';
+    }).join('');
+    document.getElementById('cl-footer').textContent = rows.length + ' entr' + (rows.length===1?'y':'ies') + ' (newest first)';
+  }).catch(function(e){
+    document.getElementById('cl-table-body').innerHTML = '<tr><td colspan="8" style="color:#ef4444;text-align:center;padding:20px">Could not load Change Log — check sheet permissions.</td></tr>';
+  });
 }
 
 function renderCorrectionsPage() {
