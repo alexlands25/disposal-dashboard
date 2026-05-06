@@ -529,7 +529,7 @@
       <div class="logo">🧾</div>
       <div class="header-title">
         <h1>Epic Receipt Log</h1>
-        <p>Operational Expense Tracking — Epic Landscaping &nbsp;<span style="background:rgba(34,197,94,.15);color:#22c55e;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.04em">v3.2.0</span></p>
+        <p>Operational Expense Tracking — Epic Landscaping &nbsp;<span style="background:rgba(34,197,94,.15);color:#22c55e;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.04em">v3.2.1</span></p>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:10px">
@@ -3338,6 +3338,12 @@ function updateStatus(selectEl) {
   });
   if (oldStatus !== newStatus) logCorrection('Status', storeLabel, dateLabel, oldStatus, newStatus, sheetRow);
 
+  // If marking Duplicate: remove from main list immediately, re-render
+  if (newStatus === 'Duplicate') {
+    allRows = allRows.filter(function(r) { return r._rowIndex + 2 !== sheetRow; });
+    applyFilters();
+  }
+
   // POST to Apps Script
   fetch(APPS_SCRIPT_URL, {
     method: 'POST',
@@ -3345,6 +3351,7 @@ function updateStatus(selectEl) {
     body: JSON.stringify({
       action: 'updateCell',
       sheetId: SHEET_ID,
+      sheetName: SHEET_TAB,
       row: sheetRow,
       col: STATUS_COL,
       value: newStatus
@@ -3355,6 +3362,9 @@ function updateStatus(selectEl) {
     if (!resp.success) {
       console.warn('Status update failed:', resp.error);
       alert('Could not save status: ' + (resp.error || 'unknown error'));
+    } else if (newStatus === 'Duplicate') {
+      // Row was moved to Duplicates tab — reload to resync row numbers
+      setTimeout(function() { loadData(); }, 1500);
     }
   })
   .catch(function(err) {
