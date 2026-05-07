@@ -2717,12 +2717,10 @@ function renderFuelDeptBarChart(conRows) {
 function loadData() {
   setTableLoading();
 
-  // Use Apps Script directly to bypass gviz cache (edits reflect immediately)
-  fetch(APPS_SCRIPT_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify({ action: 'getRows', sheetId: SHEET_ID, tabName: SHEET_TAB, startRow: 1 })
-  })
+  // Use Apps Script GET (avoids CORS redirect block caused by POST — doGet supports ?data= param)
+  var gasPayload = { action: 'getRows', sheetId: SHEET_ID, tabName: SHEET_TAB, startRow: 1 };
+  var gasUrl = APPS_SCRIPT_URL + '?data=' + encodeURIComponent(JSON.stringify(gasPayload));
+  fetch(gasUrl, { method: 'GET', redirect: 'follow' })
   .then(function(r) { return r.json(); })
   .then(function(data) {
     if (!data.success && !data.ok) throw new Error(data.error || 'Script error');
