@@ -1219,7 +1219,7 @@ var chartLine, chartDonut, chartBar;
 var SHEET_ID = '1uvwHpRUYOVki3EG9WGbtX4Em8vM1EPw6nM0DCEOTykc';
 var SHEET_TAB = 'Epic Receipt Log';
 var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxlQ9_5ww_Dq-675HCvORrXvbOYmztDs8pO8ZMm0FrlcMsTjbzLHnVY22a1oBYRb8kxYA/exec';
-var WALLEE_WRITER_URL = 'https://catalog-harder-barn-petersburg.trycloudflare.com'; // Wallee service account writer
+var WALLEE_WRITER_URL = ''; // Cloudflare tunnel disabled — writes route directly through Apps Script GET
 var STATUS_COL = 12; // Column L in sheet (1-based)
 var DEPT_COL   = 2;  // Column B in sheet (1-based)
 var STORE_COL  = 3;  // Column C
@@ -3187,16 +3187,20 @@ function renderTable() {
   document.getElementById('table-footer').textContent = rows.length.toLocaleString() + ' receipt' + (rows.length !== 1 ? 's' : '');
 }
 
-// ─── Write helper — routes through Wallee service account writer ─────────────
-// Reads still go through Apps Script (gasRead). Writes go to Wallee Python server.
+// ─── Write helper — routes through Apps Script GET (POST causes CORS redirect block) ─────────────
 function gasWrite(payload) {
-  // Use Wallee writer for any mutation action
-  var writeActions = ['updateCell','lookupAndUpdate','appendRow','updateRow','deleteRows','clearRow','bulkAppend','clearAndWrite','logChange'];
-  if (writeActions.indexOf(payload.action) !== -1 && typeof WALLEE_WRITER_URL !== 'undefined' && WALLEE_WRITER_URL) {
-    var url = WALLEE_WRITER_URL + '?data=' + encodeURIComponent(JSON.stringify(payload)) + '&_t=' + Date.now();
-    return fetch(url, { method: 'GET' }).then(function(r){ return r.json(); });
+  // Try Wallee writer first if configured, fall back to Apps Script on any failure
+  if (typeof WALLEE_WRITER_URL !== 'undefined' && WALLEE_WRITER_URL) {
+    var writeUrl = WALLEE_WRITER_URL + '?data=' + encodeURIComponent(JSON.stringify(payload)) + '&_t=' + Date.now();
+    return fetch(writeUrl, { method: 'GET' })
+      .then(function(r){ return r.json(); })
+      .catch(function() {
+        // Tunnel dead or unreachable — fall through to Apps Script
+        var url = APPS_SCRIPT_URL + '?data=' + encodeURIComponent(JSON.stringify(payload));
+        return fetch(url, { method: 'GET', redirect: 'follow' }).then(function(r){ return r.json(); });
+      });
   }
-  // Fallback: Apps Script GET
+  // No writer URL — use Apps Script directly
   var url = APPS_SCRIPT_URL + '?data=' + encodeURIComponent(JSON.stringify(payload));
   return fetch(url, { method: 'GET', redirect: 'follow' }).then(function(r){ return r.json(); });
 }
