@@ -331,12 +331,12 @@
     .search-input:focus { outline: 2px solid var(--blue); outline-offset: 0; }
 
     .table-wrap { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
     thead tr { background: var(--surface); }
     th {
-      padding: 10px 14px;
+      padding: 8px 10px;
       text-align: left;
-      font-size: 11px;
+      font-size: 10px;
       text-transform: uppercase;
       letter-spacing: .07em;
       color: var(--muted);
@@ -349,13 +349,18 @@
     th.sorted-asc::after  { content: " ↑"; }
     th.sorted-desc::after { content: " ↓"; }
     td {
-      padding: 10px 14px;
+      padding: 7px 10px;
       border-bottom: 1px solid var(--border);
       white-space: nowrap;
-      max-width: 220px;
+      max-width: 180px;
       overflow: hidden;
       text-overflow: ellipsis;
     }
+    td.col-items { max-width: 130px; }
+    td.col-store { max-width: 140px; }
+    td.col-job   { max-width: 110px; }
+    .col-optional { display: table-cell; }
+    .col-optional.hidden { display: none; }
     tr:last-child td { border-bottom: none; }
     tr:hover td { background: rgba(255,255,255,.03); }
 
@@ -648,7 +653,10 @@
   <div class="table-section">
     <div class="table-header">
       <h2>All Receipts</h2>
-      <input class="search-input" type="text" placeholder="Search store, dept, employee, amount, job…" oninput="filterTable(this.value)" id="search-box" />
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input class="search-input" type="text" placeholder="Search store, dept, employee, amount, job…" oninput="filterTable(this.value)" id="search-box" />
+        <button onclick="toggleOptionalCols()" id="cols-btn" style="background:var(--surface);border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:6px 12px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap">Columns ▾</button>
+      </div>
     </div>
     <div class="table-wrap">
       <table id="receipts-table">
@@ -657,14 +665,14 @@
             <th onclick="sortTable('Date')"       id="th-Date">Date</th>
             <th onclick="sortTable('Department')" id="th-Department">Dept</th>
             <th onclick="sortTable('Store')"      id="th-Store">Store</th>
-            <th>Category</th>
+            <th class="col-optional hidden" id="th-Category">Category</th>
             <th onclick="sortTable('Amount')"     id="th-Amount">Amount</th>
             <th>Items</th>
-            <th onclick="sortTable('Job/Cliente')" id="th-Job/Cliente">Job/Cliente</th>
+            <th onclick="sortTable('Job/Cliente')" id="th-Job/Cliente">Job</th>
             <th onclick="sortTable('Employee')"   id="th-Employee">Employee</th>
-            <th>Payment</th>
-            <th>Receipt #</th>
-            <th>Photo</th>
+            <th class="col-optional hidden" id="th-Payment">Payment</th>
+            <th class="col-optional" id="th-Receipt">Receipt #</th>
+            <th>📷</th>
             <th onclick="sortTable('Status')"     id="th-Status">Status</th>
           </tr>
         </thead>
@@ -2843,6 +2851,22 @@ function filterTable(val) {
   applyFilters();
 }
 
+var _colsExpanded = false;
+function toggleOptionalCols() {
+  _colsExpanded = !_colsExpanded;
+  var ids = ['th-Category','th-Payment','th-Receipt'];
+  ids.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) {
+      if (_colsExpanded) el.classList.remove('hidden');
+      else el.classList.add('hidden');
+    }
+  });
+  var btn = document.getElementById('cols-btn');
+  if (btn) btn.textContent = _colsExpanded ? 'Columns ▴' : 'Columns ▾';
+  renderTable(); // re-render rows with updated col visibility
+}
+
 // ─── Cards ────────────────────────────────────────────────────────────────────
 function renderCards() {
   var total = filteredRows.reduce(function(s,r){ return s + r._amount; }, 0);
@@ -3138,17 +3162,23 @@ function renderTable() {
     var jobRaw    = r['Job/Cliente'] || '';
     var jobCell   = '<span class="editable-cell" contenteditable="true" data-sheet-row="' + sheetRow + '" data-col="' + JOB_COL + '" data-field="Job" title="Click to edit"' + (jobRaw ? ' style="background:#0369a122;color:#0369a1;padding:2px 6px;border-radius:4px;font-size:11px"' : '') + '>' + (jobRaw || '—') + '</span>';
 
+    var optHidden = document.getElementById('th-Category') && document.getElementById('th-Category').classList.contains('hidden');
+    var optClass = optHidden ? 'col-optional hidden' : 'col-optional';
+    var payHidden = document.getElementById('th-Payment') && document.getElementById('th-Payment').classList.contains('hidden');
+    var payClass = payHidden ? 'col-optional hidden' : 'col-optional';
+    var rcptHidden = document.getElementById('th-Receipt') && document.getElementById('th-Receipt').classList.contains('hidden');
+    var rcptClass = rcptHidden ? 'col-optional hidden' : 'col-optional';
     return '<tr>' +
       '<td>' + dateStr + '</td>' +
       '<td>' + deptChip + '</td>' +
-      '<td>' + storeCell + '</td>' +
-      '<td>' + catCell + '</td>' +
+      '<td class="col-store">' + storeCell + '</td>' +
+      '<td class="' + optClass + '">' + catCell + '</td>' +
       '<td>' + amtStr + '</td>' +
-      '<td title="' + items + '">' + items + '</td>' +
-      '<td>' + jobCell + '</td>' +
+      '<td class="col-items" title="' + items + '">' + items + '</td>' +
+      '<td class="col-job">' + jobCell + '</td>' +
       '<td>' + emp + '</td>' +
-      '<td>' + pay + '</td>' +
-      '<td>' + rnum + '</td>' +
+      '<td class="' + payClass + '">' + pay + '</td>' +
+      '<td class="' + rcptClass + '">' + rnum + '</td>' +
       '<td style="text-align:center">' + photo + '</td>' +
       '<td>' + statusCell + '</td>' +
       '</tr>';
