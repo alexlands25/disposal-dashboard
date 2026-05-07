@@ -145,6 +145,17 @@
     .fuel-status-bad  { color: #ef4444; font-weight:600; }
     .fuel-cards { display:grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap:16px; margin-bottom:24px; }
 
+    .editable-cell {
+      cursor: text;
+      border-radius: 3px;
+      padding: 1px 3px;
+      transition: outline 0.1s;
+      display: inline-block;
+      min-width: 20px;
+    }
+    .editable-cell:hover { background: rgba(255,255,255,0.05); }
+    .editable-cell:focus { background: rgba(59,130,246,0.08); }
+
     .status-select {
       appearance: none;
       -webkit-appearance: none;
@@ -529,7 +540,7 @@
       <div class="logo">🧾</div>
       <div class="header-title">
         <h1>Epic Receipt Log</h1>
-        <p>Operational Expense Tracking — Epic Landscaping &nbsp;<span style="background:rgba(34,197,94,.15);color:#22c55e;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.04em">v3.3.0</span></p>
+        <p>Operational Expense Tracking — Epic Landscaping &nbsp;<span style="background:rgba(34,197,94,.15);color:#22c55e;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.04em">v3.3.1</span></p>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:10px">
@@ -1202,6 +1213,9 @@ var SHEET_TAB = 'Epic Receipt Log';
 var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxlQ9_5ww_Dq-675HCvORrXvbOYmztDs8pO8ZMm0FrlcMsTjbzLHnVY22a1oBYRb8kxYA/exec';
 var STATUS_COL = 12; // Column L in sheet (1-based)
 var DEPT_COL   = 2;  // Column B in sheet (1-based)
+var STORE_COL  = 3;  // Column C
+var CAT_COL    = 4;  // Column D
+var JOB_COL    = 7;  // Column G
 var CORRECTIONS_LOG_TAB = 'Corrections Log';
 var amtMin = 0;
 var amtMax = Infinity;
@@ -3119,14 +3133,19 @@ function renderTable() {
     var amtStr = r._amount > 0 ? '<strong>$' + fmt(r._amount) + '</strong>' : '—';
     var jobChip = jobcli ? '<span style="background:#0369a122;color:#0369a1;padding:2px 6px;border-radius:4px;font-size:11px">' + jobcli + '</span>' : '—';
 
+    var storeCell = '<span class="editable-cell" contenteditable="true" data-sheet-row="' + sheetRow + '" data-col="' + STORE_COL + '" data-field="Store" title="Click to edit">' + store + '</span>';
+    var catCell   = '<span class="editable-cell" contenteditable="true" data-sheet-row="' + sheetRow + '" data-col="' + CAT_COL + '" data-field="Category" title="Click to edit" style="font-size:11px;color:#94a3b8">' + cat + '</span>';
+    var jobRaw    = r['Job/Cliente'] || '';
+    var jobCell   = '<span class="editable-cell" contenteditable="true" data-sheet-row="' + sheetRow + '" data-col="' + JOB_COL + '" data-field="Job" title="Click to edit"' + (jobRaw ? ' style="background:#0369a122;color:#0369a1;padding:2px 6px;border-radius:4px;font-size:11px"' : '') + '>' + (jobRaw || '—') + '</span>';
+
     return '<tr>' +
       '<td>' + dateStr + '</td>' +
       '<td>' + deptChip + '</td>' +
-      '<td title="' + store + '">' + store + '</td>' +
-      '<td><span style="font-size:11px;color:#94a3b8">' + cat + '</span></td>' +
+      '<td>' + storeCell + '</td>' +
+      '<td>' + catCell + '</td>' +
       '<td>' + amtStr + '</td>' +
       '<td title="' + items + '">' + items + '</td>' +
-      '<td>' + jobChip + '</td>' +
+      '<td>' + jobCell + '</td>' +
       '<td>' + emp + '</td>' +
       '<td>' + pay + '</td>' +
       '<td>' + rnum + '</td>' +
@@ -3138,6 +3157,67 @@ function renderTable() {
   tbody.innerHTML = html;
   document.getElementById('table-footer').textContent = rows.length.toLocaleString() + ' receipt' + (rows.length !== 1 ? 's' : '');
 }
+
+// ─── Inline Edit (Store / Category / Job) ───────────────────────────────────
+document.addEventListener('focusin', function(e) {
+  if (e.target.classList.contains('editable-cell')) {
+    var el = e.target;
+    if (el.textContent === '—') el.textContent = '';
+    el.dataset.before = el.textContent;
+    el.style.outline = '1px solid #3b82f6';
+    el.style.borderRadius = '3px';
+  }
+});
+document.addEventListener('focusout', function(e) {
+  if (e.target.classList.contains('editable-cell')) {
+    var el = e.target;
+    el.style.outline = '';
+    var newVal = el.textContent.trim();
+    var oldVal = el.dataset.before || '';
+    if (newVal === oldVal) return;
+    var sheetRow = parseInt(el.dataset.sheetRow, 10);
+    var col      = parseInt(el.dataset.col, 10);
+    var field    = el.dataset.field || 'Field';
+    if (!newVal) { el.textContent = oldVal || '—'; return; }
+    el.style.opacity = '0.5';
+    // Update allRows in memory
+    var fieldKey = field === 'Job' ? 'Job/Cliente' : field;
+    allRows.forEach(function(r) { if (r._rowIndex + 2 === sheetRow) r[fieldKey] = newVal; });
+    // Log
+    var storeLabel = '', dateLabel = '';
+    allRows.forEach(function(r) { if (r._rowIndex + 2 === sheetRow) { storeLabel = r['Store']||''; dateLabel = r['Date']||''; } });
+    logCorrection(field, storeLabel, dateLabel, oldVal, newVal, sheetRow);
+    // Push to sheet
+    fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'updateCell', sheetId: SHEET_ID, row: sheetRow, col: col, value: newVal })
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(resp){
+      el.style.opacity = '';
+      if (resp.success) {
+        el.style.outline = '1px solid #22c55e';
+        setTimeout(function(){ el.style.outline = ''; }, 1200);
+        el.dataset.before = newVal;
+      } else {
+        alert('Update failed: ' + (resp.error||'?'));
+        el.textContent = oldVal;
+      }
+    })
+    .catch(function(err){
+      el.style.opacity = '';
+      alert('Could not reach Apps Script: ' + err);
+      el.textContent = oldVal;
+    });
+  }
+});
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && e.target.classList.contains('editable-cell')) {
+    e.preventDefault();
+    e.target.blur();
+  }
+});
 
 function esc(str) {
   return String(str)
