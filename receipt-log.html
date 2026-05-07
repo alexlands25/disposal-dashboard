@@ -540,7 +540,7 @@
       <div class="logo">🧾</div>
       <div class="header-title">
         <h1>Epic Receipt Log</h1>
-        <p>Operational Expense Tracking — Epic Landscaping &nbsp;<span style="background:rgba(34,197,94,.15);color:#22c55e;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.04em">v3.3.1</span></p>
+        <p>Operational Expense Tracking — Epic Landscaping &nbsp;<span style="background:rgba(34,197,94,.15);color:#22c55e;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.04em">v3.3.2</span></p>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:10px">
@@ -3158,6 +3158,12 @@ function renderTable() {
   document.getElementById('table-footer').textContent = rows.length.toLocaleString() + ' receipt' + (rows.length !== 1 ? 's' : '');
 }
 
+// ─── Apps Script GET helper (avoids POST redirect CORS issue) ──────────────
+function gasWrite(payload) {
+  var url = APPS_SCRIPT_URL + '?data=' + encodeURIComponent(JSON.stringify(payload));
+  return fetch(url, { method: 'GET', redirect: 'follow' }).then(function(r){ return r.json(); });
+}
+
 // ─── Inline Edit (Store / Category / Job) ───────────────────────────────────
 document.addEventListener('focusin', function(e) {
   if (e.target.classList.contains('editable-cell')) {
@@ -3187,13 +3193,8 @@ document.addEventListener('focusout', function(e) {
     var storeLabel = '', dateLabel = '';
     allRows.forEach(function(r) { if (r._rowIndex + 2 === sheetRow) { storeLabel = r['Store']||''; dateLabel = r['Date']||''; } });
     logCorrection(field, storeLabel, dateLabel, oldVal, newVal, sheetRow);
-    // Push to sheet
-    fetch(APPS_SCRIPT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ action: 'updateCell', sheetId: SHEET_ID, row: sheetRow, col: col, value: newVal })
-    })
-    .then(function(r){ return r.json(); })
+    // Push to sheet via GET (avoids CORS redirect issue)
+    gasWrite({ action: 'updateCell', sheetId: SHEET_ID, row: sheetRow, col: col, value: newVal })
     .then(function(resp){
       el.style.opacity = '';
       if (resp.success) {
@@ -3253,13 +3254,8 @@ function updateDept(selectEl) {
   });
   logCorrection('Department', storeLabel, dateLabel, oldDept, newDept, sheetRow);
 
-  // Push to sheet
-  fetch(APPS_SCRIPT_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify({ action: 'updateCell', sheetId: SHEET_ID, row: sheetRow, col: DEPT_COL, value: newDept })
-  })
-  .then(function(r){ return r.json(); })
+  // Push to sheet via GET
+  gasWrite({ action: 'updateCell', sheetId: SHEET_ID, row: sheetRow, col: DEPT_COL, value: newDept })
   .then(function(resp){ if (!resp.success) alert('Dept update failed: ' + (resp.error||'?')); })
   .catch(function(err){ alert('Could not reach Apps Script: ' + err); });
 }
@@ -3279,15 +3275,11 @@ function logCorrection(field, store, date, oldVal, newVal, sheetRow) {
 
   // Also append to Google Sheet "Corrections Log" tab
   var ts = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
-  fetch(APPS_SCRIPT_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify({
-      action: 'appendRow',
-      sheetId: SHEET_ID,
-      sheetName: CORRECTIONS_LOG_TAB,
-      row: [ts, field, store, date, oldVal, newVal]
-    })
+  gasWrite({
+    action: 'appendRow',
+    sheetId: SHEET_ID,
+    sheetName: CORRECTIONS_LOG_TAB,
+    row: [ts, field, store, date, oldVal, newVal]
   }).catch(function(){}) // best-effort, don't block UI
 }
 
@@ -3424,20 +3416,15 @@ function updateStatus(selectEl) {
     applyFilters();
   }
 
-  // POST to Apps Script
-  fetch(APPS_SCRIPT_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify({
-      action: 'updateCell',
-      sheetId: SHEET_ID,
-      sheetName: SHEET_TAB,
-      row: sheetRow,
-      col: STATUS_COL,
-      value: newStatus
-    })
+  // GET to Apps Script (avoids POST redirect CORS issue)
+  gasWrite({
+    action: 'updateCell',
+    sheetId: SHEET_ID,
+    sheetName: SHEET_TAB,
+    row: sheetRow,
+    col: STATUS_COL,
+    value: newStatus
   })
-  .then(function(r) { return r.json(); })
   .then(function(resp) {
     if (!resp.success) {
       console.warn('Status update failed:', resp.error);
