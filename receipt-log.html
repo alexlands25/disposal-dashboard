@@ -2814,6 +2814,7 @@ function applyFilters() {
 
   filteredRows = allRows.filter(function(r) {
     if ((r['Status'] || '').toLowerCase() === 'duplicate') return false; // Duplicates go to Corrections tab
+    if ((r['Status'] || '').toLowerCase() === 'rejected') return false; // Rejected = excluded from dashboard & totals
     if (r._date < cutoff) return false;
     if (todayCeiling && r._date >= todayCeiling) return false;
     if (currentDept !== 'All' && r['Department'] !== currentDept) return false;
