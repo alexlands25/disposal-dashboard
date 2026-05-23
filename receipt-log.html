@@ -1226,7 +1226,7 @@ var STORE_COL  = 3;  // Column C
 var CAT_COL    = 4;  // Column D
 var JOB_COL    = 7;  // Column G
 var CORRECTIONS_LOG_TAB = 'Corrections Log';
-var amtMin = 0;
+var amtMin = -Infinity;
 var amtMax = Infinity;
 var correctionLog = []; // in-memory log for current session
 
@@ -2821,7 +2821,7 @@ function applyFilters() {
     if (r._amount < amtMin) return false;
     if (r._amount > amtMax) return false;
     if (search) {
-      var amtStr = r._amount > 0 ? String(r._amount.toFixed(2)) : '';
+      var amtStr = r._amount !== 0 ? String(Math.abs(r._amount).toFixed(2)) : '';
       var haystack = [r['Store'], r['Department'], r['Employee'], r['Items'], r['Receipt#'], r['Job/Cliente'], r['Category'], r['Payment'], amtStr].join(' ').toLowerCase();
       if (!haystack.includes(search)) return false;
     }
@@ -3154,7 +3154,9 @@ function renderTable() {
     var dateStr   = r._date && r._date.getFullYear() > 2000
       ? r._date.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'2-digit'})
       : esc(r['Date'] || '');
-    var amtStr = r._amount > 0 ? '<strong>$' + fmt(r._amount) + '</strong>' : '—';
+    var amtStr = r._amount < 0
+      ? '<strong style="color:#ef4444">-$' + fmt(Math.abs(r._amount)) + '</strong> <span style="background:#ef444422;color:#ef4444;font-size:10px;font-weight:700;padding:1px 5px;border-radius:4px">CRÉDITO</span>'
+      : (r._amount > 0 ? '<strong>$' + fmt(r._amount) + '</strong>' : '—');
     var jobChip = jobcli ? '<span style="background:#0369a122;color:#0369a1;padding:2px 6px;border-radius:4px;font-size:11px">' + jobcli + '</span>' : '—';
 
     var storeCell = '<span class="editable-cell" contenteditable="true" data-sheet-row="' + sheetRow + '" data-col="' + STORE_COL + '" data-field="Store" title="Click to edit">' + store + '</span>';
