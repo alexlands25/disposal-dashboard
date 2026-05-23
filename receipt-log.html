@@ -1218,8 +1218,8 @@ var chartLine, chartDonut, chartBar;
 // ─── Config — hardcoded Sheet ID ─────────────────────────────────────────────
 var SHEET_ID = '1uvwHpRUYOVki3EG9WGbtX4Em8vM1EPw6nM0DCEOTykc';
 var SHEET_TAB = 'Epic Receipt Log';
-var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxlQ9_5ww_Dq-675HCvORrXvbOYmztDs8pO8ZMm0FrlcMsTjbzLHnVY22a1oBYRb8kxYA/exec';
-var WALLEE_WRITER_URL = ''; // Cloudflare tunnel disabled — writes route directly through Apps Script GET
+var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxO4-AF7YGhhc63Al6DGS476IG9n90IR6ySCJLObttjrR_smuLCyrPtdDLPFuTUDk0Q0g/exec';
+var WALLEE_WRITER_URL = 'http://192.168.0.27:18804'; // Wallee Writer local API — sheet writes via service account
 var STATUS_COL = 12; // Column L in sheet (1-based)
 var DEPT_COL   = 2;  // Column B in sheet (1-based)
 var STORE_COL  = 3;  // Column C
@@ -2355,7 +2355,7 @@ function renderDisposalCharts() {
   });
 }
 
-var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxlQ9_5ww_Dq-675HCvORrXvbOYmztDs8pO8ZMm0FrlcMsTjbzLHnVY22a1oBYRb8kxYA/exec';
+var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxO4-AF7YGhhc63Al6DGS476IG9n90IR6ySCJLObttjrR_smuLCyrPtdDLPFuTUDk0Q0g/exec';
 var CONSOLIDATED_SHEET_ID = '1uvwHpRUYOVki3EG9WGbtX4Em8vM1EPw6nM0DCEOTykc';
 
 function flipRowType(btn) {
